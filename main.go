@@ -202,11 +202,23 @@ func main() {
 			winerosettaDllPath := filepath.Join(turtlewowPath, "winerosetta.dll")
 			d3d9DllPath := filepath.Join(turtlewowPath, "d3d9.dll")
 			rosettaX87DirPath := filepath.Join(turtlewowPath, "rosettax87")
+			dllsTextFile := filepath.Join(turtlewowPath, "dlls.txt")
 			// Check for libRuntimeRosettax87 as well
 			rosettaX87ExePath := filepath.Join(rosettaX87DirPath, "rosettax87")
 			libRuntimeRosettaX87Path := filepath.Join(rosettaX87DirPath, "libRuntimeRosettax87")
 
-			if pathExists(winerosettaDllPath) && pathExists(d3d9DllPath) && dirExists(rosettaX87DirPath) && pathExists(rosettaX87ExePath) && pathExists(libRuntimeRosettaX87Path) {
+			// Check if dlls.txt exists and contains winerosetta.dll
+			dllsFileValid := false
+			if pathExists(dllsTextFile) {
+				if fileContent, err := os.ReadFile(dllsTextFile); err == nil {
+					if strings.Contains(string(fileContent), "winerosetta.dll") {
+						dllsFileValid = true
+					}
+				}
+			}
+
+			if pathExists(winerosettaDllPath) && pathExists(d3d9DllPath) && dirExists(rosettaX87DirPath) && 
+			   pathExists(rosettaX87ExePath) && pathExists(libRuntimeRosettaX87Path) && dllsFileValid {
 				patchesAppliedTurtleWoW = true
 			} else {
 				// patchesAppliedTurtleWoW = false
@@ -303,6 +315,7 @@ func main() {
 		targetWinerosettaDll := filepath.Join(turtlewowPath, "winerosetta.dll")
 		targetD3d9Dll := filepath.Join(turtlewowPath, "d3d9.dll")
 		targetRosettaX87Dir := filepath.Join(turtlewowPath, "rosettax87")
+		dllsTextFile := filepath.Join(turtlewowPath, "dlls.txt")
 
 		// Files to copy directly into turtlewowPath
 		filesToCopy := map[string]string{
@@ -415,6 +428,55 @@ func main() {
 				}
 			}
 			log.Printf("Successfully copied %s to %s", resourceName, destPath)
+		}
+
+		// Check and update dlls.txt file
+		log.Printf("Checking dlls.txt file at: %s", dllsTextFile)
+		winerosettaEntry := "winerosetta.dll"
+		needsUpdate := true
+
+		// Check if file exists and if winerosetta.dll is already in it
+		if fileContent, err := os.ReadFile(dllsTextFile); err == nil {
+			// File exists, check if it contains winerosetta.dll
+			if strings.Contains(string(fileContent), winerosettaEntry) {
+				log.Printf("dlls.txt already contains %s", winerosettaEntry)
+				needsUpdate = false
+			}
+		} else {
+			// File doesn't exist, we'll create a new one
+			log.Printf("dlls.txt not found, will create a new one")
+		}
+
+		// Update the file if needed
+		if needsUpdate {
+			var fileContent []byte
+			if pathExists(dllsTextFile) {
+				var err error
+				fileContent, err = os.ReadFile(dllsTextFile)
+				if err != nil {
+					errMsg := fmt.Sprintf("failed to read dlls.txt: %v", err)
+					dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+					log.Println(errMsg)
+					// Not treating this as fatal, will try to create/overwrite
+				}
+			}
+
+			// Append winerosetta.dll to file content
+			if len(fileContent) > 0 && !strings.HasSuffix(string(fileContent), "\n") {
+				fileContent = append(fileContent, '\n')
+			}
+			fileContent = append(fileContent, []byte(winerosettaEntry)...)
+			fileContent = append(fileContent, '\n')
+
+			// Write updated content back to file
+			if err := os.WriteFile(dllsTextFile, fileContent, 0644); err != nil {
+				errMsg := fmt.Sprintf("failed to update dlls.txt: %v", err)
+				dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+				log.Println(errMsg)
+				// Not treating this as fatal for patching process
+			} else {
+				log.Printf("Successfully updated dlls.txt with %s", winerosettaEntry)
+			}
 		}
 
 		log.Println("TurtleWoW patching with bundled resources completed successfully.")
