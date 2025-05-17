@@ -1,6 +1,9 @@
 # TurtleSilicon <img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center">
 
-![Turtle WoW FPS on Apple Silicon](img/turtlesilicon-fps.png)
+<div align="center">
+<img src="img/turtlesilicon-fps.png" alt="Turtle WoW FPS on Apple Silicon" width="49%" />
+<img src="img/turtlesilicon-app.png" alt="TurtleSilicon Application" width="49%" />
+</div>
 
 A user-friendly launcher for Turtle WoW on Apple Silicon Macs, with one-click patching of winerosetta, rosettax87 and d9vk.
 
@@ -27,6 +30,8 @@ All credit for the core translation layer `winerosetta` goes to **LifeisAwful**.
 
 ## Usage
 
+### Method 1: Using the Pre-built Application
+
 1.  Launch `TurtleSilicon.app`.
 2.  **Set CrossOver Path**:
     *   If CrossOver is installed in the default location (`/Applications/CrossOver.app`), this path will be pre-filled.
@@ -41,6 +46,29 @@ All credit for the core translation layer `winerosetta` goes to **LifeisAwful**.
     *   Once both paths are set and both components are patched, the "Launch Game" button will become active. Click it.
     *   Follow the on-screen prompts (you will need to enter your password in a new Terminal window for `rosettax87`).
 6.  **Enjoy**: Experience a significantly smoother Turtle WoW on your Apple Silicon Mac!
+
+### Method 2: Running from Source Code
+
+If you prefer to run the application directly from source code:
+
+1.  **Clone the repository**:
+    ```sh
+    git clone https://github.com/tairasu/TurtleSilicon.git
+    ```
+
+2.  **Navigate to the directory**:
+    ```sh
+    cd TurtleSilicon
+    ```
+
+3.  **Run the application**:
+    ```sh
+    go run main.go
+    ```
+    
+    Note: This method requires Go to be installed on your system. See the Build Instructions section for details on installing Go and Fyne.
+
+4.  **Use the application** as described in Method 1 (steps 2-6).
 
 ## Build Instructions
 
