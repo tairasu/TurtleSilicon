@@ -129,7 +129,7 @@ func escapeStringForAppleScript(s string) string {
 
 func main() {
 	myApp := app.NewWithID("com.example.turtlesilicon")
-	myWindow := myApp.NewWindow("TurtleSilicon Patcher")
+	myWindow := myApp.NewWindow("TurtleSilicon")
 	myWindow.Resize(fyne.NewSize(650, 450)) // Slightly wider for clarity
 	myWindow.SetFixedSize(true)
 
