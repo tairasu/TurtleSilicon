@@ -469,6 +469,17 @@ func main() {
 		}
 		log.Printf("codesign output: %s", string(combinedOutput)) // Use combinedOutput here
 
+		// 3. Make wineloader2 executable
+		log.Printf("Setting execute permissions for %s", wineloaderCopy)
+		if err := os.Chmod(wineloaderCopy, 0755); err != nil {
+			errMsg := fmt.Sprintf("failed to set executable permissions for %s: %v", wineloaderCopy, err)
+			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			log.Println(errMsg)
+			patchesAppliedCrossOver = false
+			updateAllStatuses()
+			return
+		}
+
 		log.Println("CrossOver patching completed successfully.")
 		patchesAppliedCrossOver = true
 		dialog.ShowInformation("Success", "CrossOver patching process completed.", myWindow)
