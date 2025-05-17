@@ -14,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -24,7 +25,7 @@ var (
 	turtlewowPath           string
 	patchesAppliedTurtleWoW = false
 	patchesAppliedCrossOver = false
-
+	enableMetalHud          = true // Default to enabled
 )
 
 // Helper function to check if a path exists
@@ -130,14 +131,25 @@ func main() {
 	myApp := app.NewWithID("com.example.turtlesilicon")
 	myWindow := myApp.NewWindow("TurtleSilicon Patcher")
 	myWindow.Resize(fyne.NewSize(650, 450)) // Slightly wider for clarity
+	myWindow.SetFixedSize(true)
 
 	// --- Path Labels ---
-	crossoverPathLabel := widget.NewLabel("CrossOver Path: Not set")
-	turtlewowPathLabel := widget.NewLabel("TurtleWoW Path: Not set")
+	crossoverPathLabel := widget.NewRichText() // Changed to RichText
+	turtlewowPathLabel := widget.NewRichText() // Changed to RichText
 
-	// --- Status Labels ---
-	turtlewowStatusLabel := widget.NewLabel("TurtleWoW Patch Status: Not Applied")
-	crossoverStatusLabel := widget.NewLabel("CrossOver Patch Status: Not Applied")
+	// --- Status Labels (Changed to RichText for color) ---
+	var turtlewowStatusLabel *widget.RichText
+	var crossoverStatusLabel *widget.RichText
+
+	turtlewowStatusLabel = widget.NewRichText()
+	crossoverStatusLabel = widget.NewRichText()
+
+	// --- Checkbox for Metal HUD ---
+	metalHudCheckbox := widget.NewCheck("Enable Metal Hud (show FPS)", func(checked bool) {
+		enableMetalHud = checked
+		log.Printf("Metal HUD enabled: %v", enableMetalHud)
+	})
+	metalHudCheckbox.SetChecked(enableMetalHud) // Set initial state
 
 	// --- Buttons (declared here to be accessible in updateAllStatuses) ---
 	var launchButton *widget.Button
@@ -148,25 +160,28 @@ func main() {
 	updateAllStatuses := func() {
 		// Update Crossover Path and Status
 		if crossoverPath == "" {
-			crossoverPathLabel.SetText("CrossOver Path: Not set")
+			crossoverPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not set", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+			crossoverPathLabel.Refresh()
 			patchesAppliedCrossOver = false // Reset if path is cleared
 		} else {
-			crossoverPathLabel.SetText("CrossOver Path: " + crossoverPath)
+			crossoverPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: crossoverPath, Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
+			crossoverPathLabel.Refresh()
 			wineloader2Path := filepath.Join(crossoverPath, "Contents", "SharedSupport", "CrossOver", "CrossOver-Hosted Application", "wineloader2")
 			if pathExists(wineloader2Path) {
 				patchesAppliedCrossOver = true
 			} else {
 				// patchesAppliedCrossOver = false // Only set to false if not already true from a patch action this session
-				// This will be set to true by the patch function upon success
 			}
 		}
 		if patchesAppliedCrossOver {
-			crossoverStatusLabel.SetText("CrossOver Patch Status: Applied")
+			crossoverStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Patched", Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}} // Changed to ColorNameSuccess
+			crossoverStatusLabel.Refresh()
 			if patchCrossOverButton != nil {
 				patchCrossOverButton.Disable()
 			}
 		} else {
-			crossoverStatusLabel.SetText("CrossOver Patch Status: Not Applied")
+			crossoverStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not patched", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+			crossoverStatusLabel.Refresh()
 			if patchCrossOverButton != nil {
 				if crossoverPath != "" {
 					patchCrossOverButton.Enable()
@@ -178,26 +193,34 @@ func main() {
 
 		// Update TurtleWoW Path and Status
 		if turtlewowPath == "" {
-			turtlewowPathLabel.SetText("TurtleWoW Path: Not set")
+			turtlewowPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not set", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+			turtlewowPathLabel.Refresh()
 			patchesAppliedTurtleWoW = false // Reset if path is cleared
 		} else {
-			turtlewowPathLabel.SetText("TurtleWoW Path: " + turtlewowPath)
+			turtlewowPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: turtlewowPath, Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
+			turtlewowPathLabel.Refresh()
 			winerosettaDllPath := filepath.Join(turtlewowPath, "winerosetta.dll")
 			d3d9DllPath := filepath.Join(turtlewowPath, "d3d9.dll")
 			rosettaX87DirPath := filepath.Join(turtlewowPath, "rosettax87")
-			if pathExists(winerosettaDllPath) && pathExists(d3d9DllPath) && dirExists(rosettaX87DirPath) {
+			// Check for libRuntimeRosettax87 as well
+			rosettaX87ExePath := filepath.Join(rosettaX87DirPath, "rosettax87")
+			libRuntimeRosettaX87Path := filepath.Join(rosettaX87DirPath, "libRuntimeRosettax87")
+
+			if pathExists(winerosettaDllPath) && pathExists(d3d9DllPath) && dirExists(rosettaX87DirPath) && pathExists(rosettaX87ExePath) && pathExists(libRuntimeRosettaX87Path) {
 				patchesAppliedTurtleWoW = true
 			} else {
-				// patchesAppliedTurtleWoW = false // Similar to crossover, only set by patch success or initial check
+				// patchesAppliedTurtleWoW = false
 			}
 		}
 		if patchesAppliedTurtleWoW {
-			turtlewowStatusLabel.SetText("TurtleWoW Patch Status: Applied")
+			turtlewowStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Patched", Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}} // Changed to ColorNameSuccess
+			turtlewowStatusLabel.Refresh()
 			if patchTurtleWoWButton != nil {
 				patchTurtleWoWButton.Disable()
 			}
 		} else {
-			turtlewowStatusLabel.SetText("TurtleWoW Patch Status: Not Applied")
+			turtlewowStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not patched", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+			turtlewowStatusLabel.Refresh()
 			if patchTurtleWoWButton != nil {
 				if turtlewowPath != "" {
 					patchTurtleWoWButton.Enable()
@@ -427,21 +450,6 @@ func main() {
 			return
 		}
 
-		// Set execute permissions for the wineloader2 copy
-		log.Printf("Setting execute permission for %s", wineloaderCopy)
-		if err := os.Chmod(wineloaderCopy, 0755); err != nil {
-			errMsg := fmt.Sprintf("failed to set execute permission for %s: %v", wineloaderCopy, err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
-			log.Println(errMsg)
-			patchesAppliedCrossOver = false
-			// Attempt to clean up the copied file if chmod fails
-			if err := os.Remove(wineloaderCopy); err != nil {
-				log.Printf("Warning: failed to cleanup wineloader2 after chmod failure: %v", err)
-			}
-			updateAllStatuses()
-			return
-		}
-
 		// 2. Execute codesign --remove-signature
 		log.Printf("Executing: codesign --remove-signature %s", wineloaderCopy)
 		cmd := exec.Command("codesign", "--remove-signature", wineloaderCopy)
@@ -531,8 +539,8 @@ func main() {
 			"The rosetta x87 terminal has been initiated.\n\n"+
 				"1. Please enter your sudo password in that new terminal window.\n"+
 				"2. Wait for rosetta x87 to fully start.\n\n"+
-				"Click OK here once rosetta x87 is running and you have entered the password.\n"+
-				"Click Cancel to abort launching WoW.",
+				"Click Yes once rosetta x87 is running and you have entered the password.\n"+
+				"Click No to abort launching WoW.",
 			func(confirmed bool) {
 				if confirmed {
 					log.Println("User confirmed rosetta x87 is running. Proceeding to launch WoW.")
@@ -542,14 +550,16 @@ func main() {
 						return
 					}
 
-					// Paths required for the new command (already defined in launchGameFunc scope):
-					// rosettaExecutable := filepath.Join(turtlewowPath, "rosettax87", "rosettax87")
-					// wineloader2Path := filepath.Join(crossoverPath, "Contents", "SharedSupport", "CrossOver", "CrossOver-Hosted Application", "wineloader2")
-					// turtlewowExePath := filepath.Join(turtlewowPath, "WoW.exe")
+					// Determine MTL_HUD_ENABLED value based on checkbox
+					mtlHudValue := "0"
+					if enableMetalHud {
+						mtlHudValue = "1"
+					}
 
 					// Construct the new shell command
-					shellCmd := fmt.Sprintf(`cd %s && WINEDLLOVERRIDES="d3d9=n,b" MTL_HUD_ENABLED=1 %s %s %s`,
+					shellCmd := fmt.Sprintf(`cd %s && WINEDLLOVERRIDES="d3d9=n,b" MTL_HUD_ENABLED=%s %s %s %s`,
 						quotePathForShell(turtlewowPath), // Added cd to turtlewowPath
+						mtlHudValue,                      // Use dynamic value
 						quotePathForShell(rosettaExecutable),
 						quotePathForShell(wineloader2Path),
 						quotePathForShell(turtlewowExePath)) // turtlewowExePath is defined at the start of launchGameFunc
@@ -566,7 +576,7 @@ func main() {
 					}
 
 					log.Println("Launch commands executed. Check the new terminal windows.")
-					dialog.ShowInformation("Launched", "World of Warcraft launch sequence initiated. Check the new terminal windows.", myWindow)
+					dialog.ShowInformation("Launched", "World of Warcraft is starting. Enjoy.", myWindow)
 				} else {
 					log.Println("User cancelled WoW launch after rosetta x87 initiation.")
 					dialog.ShowInformation("Cancelled", "WoW launch was cancelled.", myWindow)
@@ -613,7 +623,8 @@ func main() {
 	myWindow.SetContent(container.NewVBox(
 		pathSelectionForm,
 		patchOperationsLayout,
-		launchButton,
+		metalHudCheckbox, // Added Metal HUD checkbox
+		container.NewPadded(launchButton), // Added padding to launchButton
 	))
 
 	updateAllStatuses() // Initial UI state update, including button states
