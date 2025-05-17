@@ -17,12 +17,13 @@ All credit for the core translation layer `winerosetta` goes to **LifeisAwful**.
 
 ## Features & Highlights
 
-*   **Run 32-bit DirectX9 World of Warcraft (v1.12) on Apple Silicon:** Enjoy the classic WoW experience on your modern Mac without "illegal instruction" errors.
-*   **Significant Performance Boost:**
+*   💻 **Run 32-bit DirectX9 World of Warcraft (v1.12) on Apple Silicon:** Enjoy the classic WoW experience on your modern Mac without "illegal instruction" errors.
+*   🚀 **Significant Performance Boost:**
     *   Utilizes the `rosettax87` hack by LifeisAwful to accelerate x87 FPU instructions.
     *   Integrates `d9vk` (a fork of DXVK for MoltenVK) by Kegworks-App, enabling DirectX9 to run much more efficiently on Apple Silicon via Vulkan and Metal.
     *   Experience a massive FPS increase: from around 20 FPS in unoptimized environments to **up to 200 FPS** (a 10x improvement!) in many areas.
-*   **One-Click Patching:** Simplifies the setup process for both CrossOver and your Turtle WoW installation.
+*   🖱️ **One-Click Patching:** Simplifies the setup process for both CrossOver and your Turtle WoW installation.
+*   🎨 **User-Friendly Interface:** Easy-to-use GUI built with Fyne.
 
 ## Usage
 
