@@ -1,6 +1,15 @@
-# TurtleSilicon 
+# TurtleSilicon <img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center">
+
+![Turtle WoW FPS on Apple Silicon](img/turtlesilicon-fps.png)
 
 A user-friendly launcher for Turtle WoW on Apple Silicon Macs, with one-click patching of winerosetta, rosettax87 and d9vk.
+
+## Prerequisites
+
+Before you begin, ensure you have the following:
+
+*   A working version of **CrossOver** installed (the trial version is sufficient).
+*   The **Turtle WoW Client** downloaded from the official website.
 
 ## Credits
 
@@ -14,6 +23,23 @@ All credit for the core translation layer `winerosetta` goes to **LifeisAwful**.
     *   Integrates `d9vk` (a fork of DXVK for MoltenVK) by Kegworks-App, enabling DirectX9 to run much more efficiently on Apple Silicon via Vulkan and Metal.
     *   Experience a massive FPS increase: from around 20 FPS in unoptimized environments to **up to 200 FPS** (a 10x improvement!) in many areas.
 *   **One-Click Patching:** Simplifies the setup process for both CrossOver and your Turtle WoW installation.
+
+## Usage
+
+1.  Launch `TurtleSilicon.app`.
+2.  **Set CrossOver Path**:
+    *   If CrossOver is installed in the default location (`/Applications/CrossOver.app`), this path will be pre-filled.
+    *   Otherwise, click "Set/Change" and navigate to your `CrossOver.app` bundle.
+3.  **Set TurtleWoW Directory Path**:
+    *   Click "Set/Change" and select the folder where you have your Turtle WoW client files.
+4.  **Apply Patches**:
+    *   Click "Patch TurtleWoW".
+    *   Click "Patch CrossOver".
+    *   Status indicators will turn green once patching is successful for each.
+5.  **Launch Game**:
+    *   Once both paths are set and both components are patched, the "Launch Game" button will become active. Click it.
+    *   Follow the on-screen prompts (you will need to enter your password in a new Terminal window for `rosettax87`).
+6.  **Enjoy**: Experience a significantly smoother Turtle WoW on your Apple Silicon Mac!
 
 ## Build Instructions
 
