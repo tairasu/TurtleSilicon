@@ -1,5 +1,5 @@
 [Details]
-  Name = "TurtleSilicon Patcher"
-  ID = "com.example.turtlesilicon"
+  Name = "TurtleSilicon"
+  ID = "com.tairasu.turtlesilicon"
   Version = "0.1.0"
-  Build = 2
+  Build = 3
