@@ -1,0 +1,13 @@
+[Details]
+  Icon = ""
+  Name = "TurtleSilicon Patcher"
+  ID = "com.example.turtlesilicon"
+  Version = "0.1.0"
+  Build = 1
+
+Resources = [
+  "winerosetta/winerosetta.dll",
+  "winerosetta/d3d9.dll",
+  "rosettax87/rosettax87",
+  "rosettax87/libRuntimeRosettax87"
+]
