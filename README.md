@@ -1,3 +1,6 @@
+> [!CAUTION]
+> **Currently not recommended for hardcore mode.** This method is unstable and the client can crash at any moment. The patches are in early development.
+
 # TurtleSilicon <img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center">
 
 <div align="center">
