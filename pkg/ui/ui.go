@@ -68,6 +68,7 @@ func UpdateAllStatuses() {
 		turtlewowPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: paths.TurtlewowPath, Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
 		winerosettaDllPath := filepath.Join(paths.TurtlewowPath, "winerosetta.dll")
 		d3d9DllPath := filepath.Join(paths.TurtlewowPath, "d3d9.dll")
+		libSiliconPatchDllPath := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
 		rosettaX87DirPath := filepath.Join(paths.TurtlewowPath, "rosettax87")
 		dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
 		rosettaX87ExePath := filepath.Join(rosettaX87DirPath, "rosettax87")
@@ -76,14 +77,16 @@ func UpdateAllStatuses() {
 		dllsFileValid := false
 		if utils.PathExists(dllsTextFile) {
 			if fileContent, err := os.ReadFile(dllsTextFile); err == nil {
-				if strings.Contains(string(fileContent), "winerosetta.dll") {
+				contentStr := string(fileContent)
+				if strings.Contains(contentStr, "winerosetta.dll") && strings.Contains(contentStr, "libSiliconPatch.dll") {
 					dllsFileValid = true
 				}
 			}
 		}
 
-		if utils.PathExists(winerosettaDllPath) && utils.PathExists(d3d9DllPath) && utils.DirExists(rosettaX87DirPath) &&
-			utils.PathExists(rosettaX87ExePath) && utils.PathExists(libRuntimeRosettaX87Path) && dllsFileValid {
+		if utils.PathExists(winerosettaDllPath) && utils.PathExists(d3d9DllPath) && utils.PathExists(libSiliconPatchDllPath) && 
+			utils.DirExists(rosettaX87DirPath) && utils.PathExists(rosettaX87ExePath) && 
+			utils.PathExists(libRuntimeRosettaX87Path) && dllsFileValid {
 			paths.PatchesAppliedTurtleWoW = true
 		} else {
 			// paths.PatchesAppliedTurtleWoW = false

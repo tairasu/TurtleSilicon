@@ -25,12 +25,13 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 
 	targetWinerosettaDll := filepath.Join(paths.TurtlewowPath, "winerosetta.dll")
 	targetD3d9Dll := filepath.Join(paths.TurtlewowPath, "d3d9.dll")
+	targetLibSiliconPatchDll := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
 	targetRosettaX87Dir := filepath.Join(paths.TurtlewowPath, "rosettax87")
 	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
-
 	filesToCopy := map[string]string{
-		"winerosetta/winerosetta.dll": targetWinerosettaDll,
-		"winerosetta/d3d9.dll":        targetD3d9Dll,
+		"winerosetta/winerosetta.dll":     targetWinerosettaDll,
+		"winerosetta/d3d9.dll":            targetD3d9Dll,
+		"winerosetta/libSiliconPatch.dll": targetLibSiliconPatchDll,
 	}
 
 	for resourceName, destPath := range filesToCopy {
