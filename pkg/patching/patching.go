@@ -258,3 +258,110 @@ func PatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
 	dialog.ShowInformation("Success", "CrossOver patching process completed.", myWindow)
 	updateAllStatuses()
 }
+
+func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
+	log.Println("Unpatch TurtleWoW clicked")
+	if paths.TurtlewowPath == "" {
+		dialog.ShowError(fmt.Errorf("TurtleWoW path not set. Please set it first."), myWindow)
+		return
+	}
+
+	// Files to remove
+	winerosettaDllPath := filepath.Join(paths.TurtlewowPath, "winerosetta.dll")
+	d3d9DllPath := filepath.Join(paths.TurtlewowPath, "d3d9.dll")
+	libSiliconPatchDllPath := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
+	rosettaX87DirPath := filepath.Join(paths.TurtlewowPath, "rosettax87")
+	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
+
+	// Remove the rosettaX87 directory
+	if utils.DirExists(rosettaX87DirPath) {
+		log.Printf("Removing directory: %s", rosettaX87DirPath)
+		if err := os.RemoveAll(rosettaX87DirPath); err != nil {
+			errMsg := fmt.Sprintf("failed to remove directory %s: %v", rosettaX87DirPath, err)
+			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			log.Println(errMsg)
+		} else {
+			log.Printf("Successfully removed directory: %s", rosettaX87DirPath)
+		}
+	}
+
+	// Remove DLL files
+	filesToRemove := []string{winerosettaDllPath, d3d9DllPath, libSiliconPatchDllPath}
+	for _, file := range filesToRemove {
+		if utils.PathExists(file) {
+			log.Printf("Removing file: %s", file)
+			if err := os.Remove(file); err != nil {
+				errMsg := fmt.Sprintf("failed to remove file %s: %v", file, err)
+				dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+				log.Println(errMsg)
+			} else {
+				log.Printf("Successfully removed file: %s", file)
+			}
+		}
+	}
+
+	// Update dlls.txt file - remove winerosetta.dll and libSiliconPatch.dll entries
+	if utils.PathExists(dllsTextFile) {
+		log.Printf("Updating dlls.txt file: %s", dllsTextFile)
+		content, err := os.ReadFile(dllsTextFile)
+		if err != nil {
+			errMsg := fmt.Sprintf("failed to read dlls.txt file: %v", err)
+			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			log.Println(errMsg)
+		} else {
+			lines := strings.Split(string(content), "\n")
+			filteredLines := make([]string, 0, len(lines))
+
+			for _, line := range lines {
+				trimmedLine := strings.TrimSpace(line)
+				if trimmedLine != "winerosetta.dll" && trimmedLine != "libSiliconPatch.dll" {
+					filteredLines = append(filteredLines, line)
+				}
+			}
+
+			updatedContent := strings.Join(filteredLines, "\n")
+			if err := os.WriteFile(dllsTextFile, []byte(updatedContent), 0644); err != nil {
+				errMsg := fmt.Sprintf("failed to update dlls.txt file: %v", err)
+				dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+				log.Println(errMsg)
+			} else {
+				log.Printf("Successfully updated dlls.txt file")
+			}
+		}
+	}
+
+	log.Println("TurtleWoW unpatching completed successfully.")
+	paths.PatchesAppliedTurtleWoW = false
+	dialog.ShowInformation("Success", "TurtleWoW unpatching process completed.", myWindow)
+	updateAllStatuses()
+}
+
+func UnpatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
+	log.Println("Unpatch CrossOver clicked")
+	if paths.CrossoverPath == "" {
+		dialog.ShowError(fmt.Errorf("CrossOver path not set. Please set it first."), myWindow)
+		return
+	}
+
+	wineloaderCopy := filepath.Join(paths.CrossoverPath, "Contents", "SharedSupport", "CrossOver", "CrossOver-Hosted Application", "wineloader2")
+
+	if utils.PathExists(wineloaderCopy) {
+		log.Printf("Removing file: %s", wineloaderCopy)
+		if err := os.Remove(wineloaderCopy); err != nil {
+			errMsg := fmt.Sprintf("failed to remove file %s: %v", wineloaderCopy, err)
+			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			log.Println(errMsg)
+			updateAllStatuses()
+			return
+		} else {
+			log.Printf("Successfully removed file: %s", wineloaderCopy)
+		}
+	} else {
+		log.Printf("File not found to remove: %s", wineloaderCopy)
+	}
+
+	log.Println("CrossOver unpatching completed successfully.")
+	paths.PatchesAppliedCrossOver = false
+	dialog.ShowInformation("Success", "CrossOver unpatching process completed.", myWindow)
+	updateAllStatuses()
+}

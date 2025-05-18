@@ -17,14 +17,16 @@ import (
 )
 
 var (
-	crossoverPathLabel   *widget.RichText
-	turtlewowPathLabel   *widget.RichText
-	turtlewowStatusLabel *widget.RichText
-	crossoverStatusLabel *widget.RichText
-	launchButton         *widget.Button
-	patchTurtleWoWButton *widget.Button
-	patchCrossOverButton *widget.Button
-	metalHudCheckbox     *widget.Check
+	crossoverPathLabel      *widget.RichText
+	turtlewowPathLabel      *widget.RichText
+	turtlewowStatusLabel    *widget.RichText
+	crossoverStatusLabel    *widget.RichText
+	launchButton            *widget.Button
+	patchTurtleWoWButton    *widget.Button
+	patchCrossOverButton    *widget.Button
+	unpatchTurtleWoWButton  *widget.Button
+	unpatchCrossOverButton  *widget.Button
+	metalHudCheckbox        *widget.Check
 )
 
 func UpdateAllStatuses() {
@@ -48,6 +50,9 @@ func UpdateAllStatuses() {
 		if patchCrossOverButton != nil {
 			patchCrossOverButton.Disable()
 		}
+		if unpatchCrossOverButton != nil {
+			unpatchCrossOverButton.Enable()
+		}
 	} else {
 		crossoverStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not patched", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
 		if patchCrossOverButton != nil {
@@ -56,6 +61,9 @@ func UpdateAllStatuses() {
 			} else {
 				patchCrossOverButton.Disable()
 			}
+		}
+		if unpatchCrossOverButton != nil {
+			unpatchCrossOverButton.Disable()
 		}
 	}
 	crossoverStatusLabel.Refresh()
@@ -99,6 +107,9 @@ func UpdateAllStatuses() {
 		if patchTurtleWoWButton != nil {
 			patchTurtleWoWButton.Disable()
 		}
+		if unpatchTurtleWoWButton != nil {
+			unpatchTurtleWoWButton.Enable()
+		}
 	} else {
 		turtlewowStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not patched", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
 		if patchTurtleWoWButton != nil {
@@ -107,6 +118,9 @@ func UpdateAllStatuses() {
 			} else {
 				patchTurtleWoWButton.Disable()
 			}
+		}
+		if unpatchTurtleWoWButton != nil {
+			unpatchTurtleWoWButton.Disable()
 		}
 	}
 	turtlewowStatusLabel.Refresh()
@@ -136,8 +150,14 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	patchTurtleWoWButton = widget.NewButton("Patch TurtleWoW", func() {
 		patching.PatchTurtleWoW(myWindow, UpdateAllStatuses)
 	})
+	unpatchTurtleWoWButton = widget.NewButton("Unpatch TurtleWoW", func() {
+		patching.UnpatchTurtleWoW(myWindow, UpdateAllStatuses)
+	})
 	patchCrossOverButton = widget.NewButton("Patch CrossOver", func() {
 		patching.PatchCrossOver(myWindow, UpdateAllStatuses)
+	})
+	unpatchCrossOverButton = widget.NewButton("Unpatch CrossOver", func() {
+		patching.UnpatchCrossOver(myWindow, UpdateAllStatuses)
 	})
 	launchButton = widget.NewButton("Launch Game", func() {
 		launcher.LaunchGame(myWindow)
@@ -156,11 +176,11 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 
 	patchOperationsLayout := container.NewVBox(
 		widget.NewSeparator(),
-		container.NewGridWithColumns(3,
-			widget.NewLabel("TurtleWoW Patch:"), turtlewowStatusLabel, patchTurtleWoWButton,
+		container.NewGridWithColumns(4,
+			widget.NewLabel("TurtleWoW Patch:"), turtlewowStatusLabel, patchTurtleWoWButton, unpatchTurtleWoWButton,
 		),
-		container.NewGridWithColumns(3,
-			widget.NewLabel("CrossOver Patch:"), crossoverStatusLabel, patchCrossOverButton,
+		container.NewGridWithColumns(4,
+			widget.NewLabel("CrossOver Patch:"), crossoverStatusLabel, patchCrossOverButton, unpatchCrossOverButton,
 		),
 		widget.NewSeparator(),
 	)
