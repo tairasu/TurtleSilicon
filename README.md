@@ -82,11 +82,29 @@ To build this application yourself, you will need:
 
 Once Go and Fyne are set up, navigate to the project directory in your terminal and run the following command to build the application for Apple Silicon (ARM64) macOS:
 
+### Option 1: Using the Makefile (Recommended)
+
+The included Makefile automates the build process and handles copying the required resource files:
+
 ```sh
-GOOS=darwin GOARCH=arm64 fyne package
+make
 ```
 
-This will create a `TurtleSilicon.app` file in the project directory, which you can then run.
+This will:
+1. Build the application for Apple Silicon macOS
+2. Automatically copy the rosettax87 and winerosetta directories to the app bundle
+
+### Option 2: Manual Build
+
+If you prefer to build manually:
+
+```sh
+GOOS=darwin GOARCH=arm64 fyne package
+# Then manually copy the resource directories
+cp -R rosettax87 winerosetta TurtleSilicon.app/Contents/Resources/
+```
+
+In either case, this will create a `TurtleSilicon.app` file in the project directory, which you can then run.
 
 Make sure you have an `Icon.png` file in the root of the project directory before building.
 

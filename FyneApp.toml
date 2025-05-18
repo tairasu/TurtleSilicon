@@ -1,5 +1,6 @@
 [Details]
+  Icon = "Icon.png"
   Name = "TurtleSilicon"
   ID = "com.tairasu.turtlesilicon"
-  Version = "0.1.0"
-  Build = 15
+  Version = "1.0.3"
+  Build = 6
