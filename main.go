@@ -6,7 +6,7 @@ import (
 	"turtlesilicon/pkg/ui" // Updated import path
 )
 
-const appVersion = "1.0.5" // Added logo and unpatch functionality
+const appVersion = "1.0.5" 
 
 func main() {
 	myApp := app.NewWithID("com.tairasu.turtlesilicon")

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"log"
+	"net/url"
 	"os" // Added import for os.ReadFile
 	"path/filepath"
 	"strings"
@@ -211,11 +212,22 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 
 	UpdateAllStatuses() // Initial UI state update
 
+	// Create GitHub link
+	githubURL := "https://github.com/tairasu/TurtleSilicon"
+	parsedURL, err := url.Parse(githubURL)
+	if err != nil {
+		log.Printf("Error parsing GitHub URL: %v", err)
+	}
+	githubLink := widget.NewHyperlink("GitHub Repository", parsedURL)
+	githubContainer := container.NewCenter(githubLink)
+
 	return container.NewVBox(
 		logoContainer,
 		pathSelectionForm,
 		patchOperationsLayout,
 		metalHudCheckbox,
 		container.NewPadded(launchButton),
+		widget.NewSeparator(),
+		githubContainer,
 	)
 }
