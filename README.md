@@ -4,7 +4,7 @@
 # TurtleSilicon <img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center">
 
 <div align="center">
-<img src="img/turtlesilicon-fps.png" alt="Turtle WoW FPS on Apple Silicon" width="49%" />
+<img src="img/turtlesilicon-fps_v2.png" alt="Turtle WoW FPS on Apple Silicon" width="49%" />
 <img src="img/turtlesilicon-app_v2.png" alt="TurtleSilicon Application" width="49%" />
 </div>
 
