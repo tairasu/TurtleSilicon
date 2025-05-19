@@ -36,19 +36,20 @@ All credit for the core translation layer `winerosetta` goes to **LifeisAwful**.
 ### Method 1: Using the Pre-built Application
 
 1.  Launch `TurtleSilicon.app`.
-2.  **Set CrossOver Path**:
+     (The app is not signed, so you will get a "this app is damaged" message. Open terminal and enter `xattr -cr /path/to/TurtleSilicon.app` to bypass it)
+3.  **Set CrossOver Path**:
     *   If CrossOver is installed in the default location (`/Applications/CrossOver.app`), this path will be pre-filled.
     *   Otherwise, click "Set/Change" and navigate to your `CrossOver.app` bundle.
-3.  **Set TurtleWoW Directory Path**:
+4.  **Set TurtleWoW Directory Path**:
     *   Click "Set/Change" and select the folder where you have your Turtle WoW client files.
-4.  **Apply Patches**:
+5.  **Apply Patches**:
     *   Click "Patch TurtleWoW".
     *   Click "Patch CrossOver".
     *   Status indicators will turn green once patching is successful for each.
-5.  **Launch Game**:
+6.  **Launch Game**:
     *   Once both paths are set and both components are patched, the "Launch Game" button will become active. Click it.
     *   Follow the on-screen prompts (you will need to enter your password in a new Terminal window for `rosettax87`).
-6.  **Enjoy**: Experience a significantly smoother Turtle WoW on your Apple Silicon Mac!
+7.  **Enjoy**: Experience a significantly smoother Turtle WoW on your Apple Silicon Mac!
 
 ### Method 2: Running from Source Code
 
