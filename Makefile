@@ -11,6 +11,7 @@ build:
 	@mkdir -p TurtleSilicon.app/Contents/Resources/winerosetta
 	@cp -R rosettax87/* TurtleSilicon.app/Contents/Resources/rosettax87/
 	@cp -R winerosetta/* TurtleSilicon.app/Contents/Resources/winerosetta/
+	@cp -R Icon.png TurtleSilicon.app/Contents/Resources/
 	@echo "Build complete!"
 
 # Clean build artifacts

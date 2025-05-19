@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -141,6 +142,29 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	turtlewowStatusLabel = widget.NewRichText()
 	crossoverStatusLabel = widget.NewRichText()
 
+	// Load the application logo
+	logoResource, err := fyne.LoadResourceFromPath("Icon.png")
+	if err != nil {
+		log.Printf("Warning: could not load logo: %v", err)
+	}
+	
+	// Create the logo image with a fixed size
+	var logoImage *canvas.Image
+	if logoResource != nil {
+		logoImage = canvas.NewImageFromResource(logoResource)
+		logoImage.FillMode = canvas.ImageFillContain
+		logoImage.SetMinSize(fyne.NewSize(100, 100))
+	}
+	
+	// Create a container to center the logo
+	var logoContainer fyne.CanvasObject
+	if logoImage != nil {
+		logoContainer = container.NewCenter(logoImage)
+	} else {
+		// If logo couldn't be loaded, add an empty space for consistent layout
+		logoContainer = container.NewCenter(widget.NewLabel(""))
+	}
+
 	metalHudCheckbox = widget.NewCheck("Enable Metal Hud (show FPS)", func(checked bool) {
 		launcher.EnableMetalHud = checked
 		log.Printf("Metal HUD enabled: %v", launcher.EnableMetalHud)
@@ -188,6 +212,7 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	UpdateAllStatuses() // Initial UI state update
 
 	return container.NewVBox(
+		logoContainer,
 		pathSelectionForm,
 		patchOperationsLayout,
 		metalHudCheckbox,
