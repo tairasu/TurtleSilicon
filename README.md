@@ -5,7 +5,7 @@
 
 <div align="center">
 <img src="img/turtlesilicon-fps.png" alt="Turtle WoW FPS on Apple Silicon" width="49%" />
-<img src="img/turtlesilicon-app.png" alt="TurtleSilicon Application" width="49%" />
+<img src="img/turtlesilicon-app_v2.png" alt="TurtleSilicon Application" width="49%" />
 </div>
 
 A user-friendly launcher for Turtle WoW on Apple Silicon Macs, with one-click patching of winerosetta, rosettax87 and d9vk.
