@@ -19,7 +19,11 @@ Before you begin, ensure you have the following:
 
 ## Credits
 
-All credit for the core translation layer `winerosetta` goes to **LifeisAwful**. This application is merely a Fyne-based GUI wrapper to simplify the patching and launching process. [https://github.com/Lifeisawful/winerosetta](https://github.com/Lifeisawful/winerosetta) 
+All credit for the core translation layer `winerosetta` and `rosettax87` goes to [**@Lifeisawful**](https://github.com/Lifeisawful). This application is merely a Fyne-based GUI wrapper to simplify the patching and launching process. 
+
+[https://github.com/Lifeisawful/winerosetta](https://github.com/Lifeisawful/winerosetta) 
+
+[https://github.com/Lifeisawful/rosettax87](https://github.com/Lifeisawful/rosettax87)
 
 ## Features & Highlights
 
@@ -36,7 +40,7 @@ All credit for the core translation layer `winerosetta` goes to **LifeisAwful**.
 ### Method 1: Using the Pre-built Application
 
 1.  Launch `TurtleSilicon.app`.
-     (The app is not signed, so you will get a "this app is damaged" message. Open terminal and enter `xattr -cr /path/to/TurtleSilicon.app` to bypass it)
+     * (The app is not signed, so you will get a "this app is damaged" message. Open Terminal and enter `xattr -cr /Applications/TurtleSilicon.app` to bypass it)
 3.  **Set CrossOver Path**:
     *   If CrossOver is installed in the default location (`/Applications/CrossOver.app`), this path will be pre-filled.
     *   Otherwise, click "Set/Change" and navigate to your `CrossOver.app` bundle.
@@ -73,6 +77,12 @@ If you prefer to run the application directly from source code:
     Note: This method requires Go to be installed on your system. See the Build Instructions section for details on installing Go and Fyne.
 
 4.  **Use the application** as described in Method 1 (steps 2-6).
+
+## Recommended settings
+
+1. Set "Terrain distance" as low as possible. This reduces the overhead stress on the CPU
+2. Turn VSync on. Too high fps causes the client to freeze.
+   * Alternatively: Create a dxvk.conf file inside your TurtleWoW directory and enter `d3d9.maxFrameRate = 120`. Set it to a value of 180 or lower
 
 ## Build Instructions
 
@@ -111,4 +121,6 @@ Make sure you have an `Icon.png` file in the root of the project directory befor
 
 ## Bundled Binaries
 
-The `rosettax87` and `winerosetta` (d3d9.dll) components included in this application are precompiled for convenience. If you prefer, you can compile them yourself by following the instructions provided by LifeIsAwful on the official `winerosetta` repository: [https://github.com/Lifeisawful/winerosetta](https://github.com/Lifeisawful/winerosetta)
+The `rosettax87` and `winerosetta` components included in this application are precompiled for convenience. If you prefer, you can compile them yourself by following the instructions provided by Lifeisawful on the official repositories: 
+[https://github.com/Lifeisawful/winerosetta](https://github.com/Lifeisawful/winerosetta)
+[https://github.com/Lifeisawful/rosettax87](https://github.com/Lifeisawful/rosettax87)
