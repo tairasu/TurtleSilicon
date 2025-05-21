@@ -4,6 +4,9 @@ import (
 	"turtlesilicon/pkg/ui"
 	"turtlesilicon/pkg/utils"
 
+	"log"
+	"strings"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -23,16 +26,24 @@ func main() {
 	go func() {
 		prefs, _ := utils.LoadPrefs()
 		latest, notes, update, err := utils.CheckForUpdate(appVersion)
-		if err == nil && update && latest != appVersion && prefs.SuppressedUpdateVersion != latest {
+		log.Printf("DEBUG RAW: latest=%q", latest)
+		latestVersion := strings.TrimLeft(latest, "v.")
+		log.Printf("DEBUG: appVersion=%q, latest=%q, latestVersion=%q, suppressed=%q, update=%v, err=%v\n",
+			appVersion, latest, latestVersion, prefs.SuppressedUpdateVersion, update, err)
+		// Always skip popup if versions match
+		if latestVersion == appVersion {
+			return
+		}
+		if err == nil && update && prefs.SuppressedUpdateVersion != latestVersion {
 			checkbox := widget.NewCheck("Do not show this anymore", func(bool) {})
 			content := container.NewVBox(
-				widget.NewLabel("A new version ("+latest+") is available!"),
+				widget.NewLabel("A new version ("+latestVersion+") is available!"),
 				widget.NewLabel("Release notes:\n\n"+notes),
 				checkbox,
 			)
 			dialog.ShowCustomConfirm("Update Available", "OK", "Cancel", content, func(ok bool) {
 				if checkbox.Checked {
-					prefs.SuppressedUpdateVersion = latest
+					prefs.SuppressedUpdateVersion = latestVersion
 					utils.SavePrefs(prefs)
 				}
 			}, myWindow)
