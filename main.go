@@ -1,8 +1,8 @@
 package main
 
 import (
-	"turtlesilicon/pkg/ui"    
-	"turtlesilicon/pkg/utils" /
+	"turtlesilicon/pkg/ui"
+	"turtlesilicon/pkg/utils"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -39,7 +39,7 @@ func main() {
 		}
 	}()
 
-	content := ui.CreateUI(myWindow) 
+	content := ui.CreateUI(myWindow)
 	myWindow.SetContent(content)
 
 	myWindow.ShowAndRun()
