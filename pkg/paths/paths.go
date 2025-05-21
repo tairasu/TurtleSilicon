@@ -6,11 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"turtlesilicon/pkg/utils"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"turtlesilicon/pkg/utils"
 )
 
 const DefaultCrossOverPath = "/Applications/CrossOver.app"
@@ -38,6 +39,10 @@ func SelectCrossOverPath(myWindow fyne.Window, crossoverPathLabel *widget.RichTe
 			CrossoverPath = selectedPath
 			PatchesAppliedCrossOver = false
 			log.Println("CrossOver path set to:", CrossoverPath)
+			// Save to prefs
+			prefs, _ := utils.LoadPrefs()
+			prefs.CrossOverPath = selectedPath
+			utils.SavePrefs(prefs)
 		} else {
 			dialog.ShowError(fmt.Errorf("invalid selection: '%s'. Please select a valid .app bundle", selectedPath), myWindow)
 			log.Println("Invalid CrossOver path selected:", selectedPath)
@@ -62,6 +67,10 @@ func SelectTurtleWoWPath(myWindow fyne.Window, turtlewowPathLabel *widget.RichTe
 			TurtlewowPath = selectedPath
 			PatchesAppliedTurtleWoW = false
 			log.Println("TurtleWoW path set to:", TurtlewowPath)
+			// Save to prefs
+			prefs, _ := utils.LoadPrefs()
+			prefs.TurtleWoWPath = selectedPath
+			utils.SavePrefs(prefs)
 		} else {
 			dialog.ShowError(fmt.Errorf("invalid selection: '%s' is not a valid directory", selectedPath), myWindow)
 			log.Println("Invalid TurtleWoW path selected:", selectedPath)

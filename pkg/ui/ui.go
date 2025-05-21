@@ -7,28 +7,29 @@ import (
 	"path/filepath"
 	"strings"
 
+	"turtlesilicon/pkg/launcher" // Corrected import path
+	"turtlesilicon/pkg/patching" // Corrected import path
+	"turtlesilicon/pkg/paths"    // Corrected import path
+	"turtlesilicon/pkg/utils"    // Corrected import path
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"turtlesilicon/pkg/launcher" // Corrected import path
-	"turtlesilicon/pkg/patching" // Corrected import path
-	"turtlesilicon/pkg/paths"    // Corrected import path
-	"turtlesilicon/pkg/utils"    // Corrected import path
 )
 
 var (
-	crossoverPathLabel      *widget.RichText
-	turtlewowPathLabel      *widget.RichText
-	turtlewowStatusLabel    *widget.RichText
-	crossoverStatusLabel    *widget.RichText
-	launchButton            *widget.Button
-	patchTurtleWoWButton    *widget.Button
-	patchCrossOverButton    *widget.Button
-	unpatchTurtleWoWButton  *widget.Button
-	unpatchCrossOverButton  *widget.Button
-	metalHudCheckbox        *widget.Check
+	crossoverPathLabel     *widget.RichText
+	turtlewowPathLabel     *widget.RichText
+	turtlewowStatusLabel   *widget.RichText
+	crossoverStatusLabel   *widget.RichText
+	launchButton           *widget.Button
+	patchTurtleWoWButton   *widget.Button
+	patchCrossOverButton   *widget.Button
+	unpatchTurtleWoWButton *widget.Button
+	unpatchCrossOverButton *widget.Button
+	metalHudCheckbox       *widget.Check
 )
 
 func UpdateAllStatuses() {
@@ -94,8 +95,8 @@ func UpdateAllStatuses() {
 			}
 		}
 
-		if utils.PathExists(winerosettaDllPath) && utils.PathExists(d3d9DllPath) && utils.PathExists(libSiliconPatchDllPath) && 
-			utils.DirExists(rosettaX87DirPath) && utils.PathExists(rosettaX87ExePath) && 
+		if utils.PathExists(winerosettaDllPath) && utils.PathExists(d3d9DllPath) && utils.PathExists(libSiliconPatchDllPath) &&
+			utils.DirExists(rosettaX87DirPath) && utils.PathExists(rosettaX87ExePath) &&
 			utils.PathExists(libRuntimeRosettaX87Path) && dllsFileValid {
 			paths.PatchesAppliedTurtleWoW = true
 		} else {
@@ -138,6 +139,15 @@ func UpdateAllStatuses() {
 }
 
 func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
+	// Load saved paths from prefs
+	prefs, _ := utils.LoadPrefs()
+	if prefs.TurtleWoWPath != "" {
+		paths.TurtlewowPath = prefs.TurtleWoWPath
+	}
+	if prefs.CrossOverPath != "" {
+		paths.CrossoverPath = prefs.CrossOverPath
+	}
+
 	crossoverPathLabel = widget.NewRichText()
 	turtlewowPathLabel = widget.NewRichText()
 	turtlewowStatusLabel = widget.NewRichText()
@@ -148,7 +158,7 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	if err != nil {
 		log.Printf("Warning: could not load logo: %v", err)
 	}
-	
+
 	// Create the logo image with a fixed size
 	var logoImage *canvas.Image
 	if logoResource != nil {
@@ -156,7 +166,7 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 		logoImage.FillMode = canvas.ImageFillContain
 		logoImage.SetMinSize(fyne.NewSize(100, 100))
 	}
-	
+
 	// Create a container to center the logo
 	var logoContainer fyne.CanvasObject
 	if logoImage != nil {

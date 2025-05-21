@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -117,3 +119,21 @@ func QuotePathForShell(path string) string {
 	return fmt.Sprintf(`"%s"`, path)
 }
 
+func CheckForUpdate(currentVersion string) (latestVersion, releaseNotes string, updateAvailable bool, err error) {
+	resp, err := http.Get("https://api.github.com/repos/tairasu/TurtleSilicon/releases/latest")
+	if err != nil {
+		return "", "", false, err
+	}
+	defer resp.Body.Close()
+
+	var data struct {
+		TagName string `json:"tag_name"`
+		Body    string `json:"body"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return "", "", false, err
+	}
+
+	latest := strings.TrimPrefix(data.TagName, "v")
+	return latest, data.Body, latest != currentVersion, nil
+}
