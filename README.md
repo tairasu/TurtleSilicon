@@ -83,6 +83,7 @@ If you prefer to run the application directly from source code:
 1. Set "Terrain distance" as low as possible. This reduces the overhead stress on the CPU
 2. Turn VSync on. Too high fps causes the client to freeze.
    * Alternatively: Create a dxvk.conf file inside your TurtleWoW directory and enter `d3d9.maxFrameRate = 120`. Set it to a value of 180 or lower
+3. Turn Vertex Animation Shaders on. Otherwise you get graphic glitches on custom models.
 
 ## Build Instructions
 
