@@ -30,6 +30,7 @@ var (
 	unpatchTurtleWoWButton *widget.Button
 	unpatchCrossOverButton *widget.Button
 	metalHudCheckbox       *widget.Check
+	envVarsEntry           *widget.Entry
 )
 
 func UpdateAllStatuses() {
@@ -182,6 +183,23 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	})
 	metalHudCheckbox.SetChecked(launcher.EnableMetalHud)
 
+	// Load environment variables from preferences
+	if prefs.EnvironmentVariables != "" {
+		launcher.CustomEnvVars = prefs.EnvironmentVariables
+	}
+
+	envVarsEntry = widget.NewEntry()
+	envVarsEntry.SetPlaceHolder(`Custom environment variables`)
+	envVarsEntry.SetText(launcher.CustomEnvVars)
+	envVarsEntry.OnChanged = func(text string) {
+		launcher.CustomEnvVars = text
+		// Save to preferences
+		prefs, _ := utils.LoadPrefs()
+		prefs.EnvironmentVariables = text
+		utils.SavePrefs(prefs)
+		log.Printf("Environment variables updated: %v", launcher.CustomEnvVars)
+	}
+
 	patchTurtleWoWButton = widget.NewButton("Patch TurtleWoW", func() {
 		patching.PatchTurtleWoW(myWindow, UpdateAllStatuses)
 	})
@@ -236,6 +254,8 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 		pathSelectionForm,
 		patchOperationsLayout,
 		metalHudCheckbox,
+		widget.NewLabel("Environment Variables:"),
+		envVarsEntry,
 		container.NewPadded(launchButton),
 		widget.NewSeparator(),
 		githubContainer,

@@ -5,13 +5,15 @@ import (
 	"log"
 	"path/filepath"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/dialog"
 	"turtlesilicon/pkg/paths" // Corrected import path
 	"turtlesilicon/pkg/utils" // Corrected import path
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/dialog"
 )
 
 var EnableMetalHud = true // Default to enabled
+var CustomEnvVars = ""    // Custom environment variables
 
 func LaunchGame(myWindow fyne.Window) {
 	log.Println("Launch Game button clicked")
@@ -81,9 +83,15 @@ func LaunchGame(myWindow fyne.Window) {
 					mtlHudValue = "1"
 				}
 
-				shellCmd := fmt.Sprintf(`cd %s && WINEDLLOVERRIDES="d3d9=n,b" MTL_HUD_ENABLED=%s %s %s %s`,
+				// Prepare environment variables
+				envVars := fmt.Sprintf(`WINEDLLOVERRIDES="d3d9=n,b" MTL_HUD_ENABLED=%s`, mtlHudValue)
+				if CustomEnvVars != "" {
+					envVars = CustomEnvVars + " " + envVars
+				}
+
+				shellCmd := fmt.Sprintf(`cd %s && %s %s %s %s`,
 					utils.QuotePathForShell(paths.TurtlewowPath),
-					mtlHudValue,
+					envVars,
 					utils.QuotePathForShell(rosettaExecutable),
 					utils.QuotePathForShell(wineloader2Path),
 					utils.QuotePathForShell(wowExePath))

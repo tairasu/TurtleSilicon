@@ -10,6 +10,7 @@ type UserPrefs struct {
 	SuppressedUpdateVersion string `json:"suppressed_update_version"`
 	TurtleWoWPath           string `json:"turtlewow_path"`
 	CrossOverPath           string `json:"crossover_path"`
+	EnvironmentVariables    string `json:"environment_variables"`
 }
 
 func getPrefsPath() (string, error) {

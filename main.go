@@ -14,12 +14,12 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.0.6"
+const appVersion = "1.0.7"
 
 func main() {
 	myApp := app.NewWithID("com.tairasu.turtlesilicon")
 	myWindow := myApp.NewWindow("TurtleSilicon v" + appVersion)
-	myWindow.Resize(fyne.NewSize(650, 450))
+	myWindow.Resize(fyne.NewSize(650, 500))
 	myWindow.SetFixedSize(true)
 
 	// Check for updates
