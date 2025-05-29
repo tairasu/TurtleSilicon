@@ -56,59 +56,39 @@ func LaunchGame(myWindow fyne.Window) {
 		return
 	}
 
-	appleScriptSafeRosettaDir := utils.EscapeStringForAppleScript(rosettaInTurtlePath)
-	cmd1Script := fmt.Sprintf("tell application \"Terminal\" to do script \"cd \" & quoted form of \"%s\" & \" && sudo ./rosettax87\"", appleScriptSafeRosettaDir)
+	// Since RosettaX87 service is already running, we can directly launch WoW
+	log.Println("RosettaX87 service is running. Proceeding to launch WoW.")
 
-	log.Println("Launching rosettax87 (requires sudo password in new terminal)...")
-	if !utils.RunOsascript(cmd1Script, myWindow) {
+	if paths.CrossoverPath == "" || paths.TurtlewowPath == "" {
+		dialog.ShowError(fmt.Errorf("CrossOver path or TurtleWoW path is not set. Cannot launch WoW."), myWindow)
 		return
 	}
 
-	dialog.ShowConfirm("Action Required",
-		"The rosetta x87 terminal has been initiated.\n\n"+
-			"1. Please enter your sudo password in that new terminal window.\n"+
-			"2. Wait for rosetta x87 to fully start.\n\n"+
-			"Click Yes once rosetta x87 is running and you have entered the password.\n"+
-			"Click No to abort launching WoW.",
-		func(confirmed bool) {
-			if confirmed {
-				log.Println("User confirmed rosetta x87 is running. Proceeding to launch WoW.")
-				if paths.CrossoverPath == "" || paths.TurtlewowPath == "" {
-					dialog.ShowError(fmt.Errorf("CrossOver path or TurtleWoW path is not set. Cannot launch WoW."), myWindow)
-					return
-				}
+	mtlHudValue := "0"
+	if EnableMetalHud {
+		mtlHudValue = "1"
+	}
 
-				mtlHudValue := "0"
-				if EnableMetalHud {
-					mtlHudValue = "1"
-				}
+	// Prepare environment variables
+	envVars := fmt.Sprintf(`WINEDLLOVERRIDES="d3d9=n,b" MTL_HUD_ENABLED=%s`, mtlHudValue)
+	if CustomEnvVars != "" {
+		envVars = CustomEnvVars + " " + envVars
+	}
 
-				// Prepare environment variables
-				envVars := fmt.Sprintf(`WINEDLLOVERRIDES="d3d9=n,b" MTL_HUD_ENABLED=%s`, mtlHudValue)
-				if CustomEnvVars != "" {
-					envVars = CustomEnvVars + " " + envVars
-				}
+	shellCmd := fmt.Sprintf(`cd %s && %s %s %s %s`,
+		utils.QuotePathForShell(paths.TurtlewowPath),
+		envVars,
+		utils.QuotePathForShell(rosettaExecutable),
+		utils.QuotePathForShell(wineloader2Path),
+		utils.QuotePathForShell(wowExePath))
 
-				shellCmd := fmt.Sprintf(`cd %s && %s %s %s %s`,
-					utils.QuotePathForShell(paths.TurtlewowPath),
-					envVars,
-					utils.QuotePathForShell(rosettaExecutable),
-					utils.QuotePathForShell(wineloader2Path),
-					utils.QuotePathForShell(wowExePath))
+	escapedShellCmd := utils.EscapeStringForAppleScript(shellCmd)
+	cmd2Script := fmt.Sprintf("tell application \"Terminal\" to do script \"%s\"", escapedShellCmd)
 
-				escapedShellCmd := utils.EscapeStringForAppleScript(shellCmd)
-				cmd2Script := fmt.Sprintf("tell application \"Terminal\" to do script \"%s\"", escapedShellCmd)
+	log.Println("Executing WoW launch command via AppleScript...")
+	if !utils.RunOsascript(cmd2Script, myWindow) {
+		return
+	}
 
-				log.Println("Executing updated WoW launch command via AppleScript...")
-				if !utils.RunOsascript(cmd2Script, myWindow) {
-					return
-				}
-
-				log.Println("Launch commands executed. Check the new terminal windows.")
-				dialog.ShowInformation("Launched", "World of Warcraft is starting. Enjoy.", myWindow)
-			} else {
-				log.Println("User cancelled WoW launch after rosetta x87 initiation.")
-				dialog.ShowInformation("Cancelled", "WoW launch was cancelled.", myWindow)
-			}
-		}, myWindow)
+	log.Println("Launch command executed. Check the new terminal window.")
 }

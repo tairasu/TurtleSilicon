@@ -1,6 +1,7 @@
 package main
 
 import (
+	"turtlesilicon/pkg/service"
 	"turtlesilicon/pkg/ui"
 	"turtlesilicon/pkg/utils"
 
@@ -14,7 +15,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.0.7"
+const appVersion = "1.1.0"
 
 func main() {
 	myApp := app.NewWithID("com.tairasu.turtlesilicon")
@@ -52,6 +53,13 @@ func main() {
 
 	content := ui.CreateUI(myWindow)
 	myWindow.SetContent(content)
+
+	// Set up cleanup when window closes
+	myWindow.SetCloseIntercept(func() {
+		log.Println("Application closing, cleaning up RosettaX87 service...")
+		service.CleanupService()
+		myApp.Quit()
+	})
 
 	myWindow.ShowAndRun()
 }

@@ -6,10 +6,12 @@ import (
 	"os" // Added import for os.ReadFile
 	"path/filepath"
 	"strings"
+	"time"
 
 	"turtlesilicon/pkg/launcher" // Corrected import path
 	"turtlesilicon/pkg/patching" // Corrected import path
 	"turtlesilicon/pkg/paths"    // Corrected import path
+	"turtlesilicon/pkg/service"  // Added service import
 	"turtlesilicon/pkg/utils"    // Corrected import path
 
 	"fyne.io/fyne/v2"
@@ -24,13 +26,17 @@ var (
 	turtlewowPathLabel     *widget.RichText
 	turtlewowStatusLabel   *widget.RichText
 	crossoverStatusLabel   *widget.RichText
+	serviceStatusLabel     *widget.RichText
 	launchButton           *widget.Button
 	patchTurtleWoWButton   *widget.Button
 	patchCrossOverButton   *widget.Button
 	unpatchTurtleWoWButton *widget.Button
 	unpatchCrossOverButton *widget.Button
+	startServiceButton     *widget.Button
+	stopServiceButton      *widget.Button
 	metalHudCheckbox       *widget.Check
 	envVarsEntry           *widget.Entry
+	pulsingActive          = false
 )
 
 func UpdateAllStatuses() {
@@ -131,11 +137,88 @@ func UpdateAllStatuses() {
 
 	// Update Launch Button State
 	if launchButton != nil {
-		if paths.PatchesAppliedTurtleWoW && paths.PatchesAppliedCrossOver && paths.TurtlewowPath != "" && paths.CrossoverPath != "" {
+		// Now requires service to be running as well
+		if paths.PatchesAppliedTurtleWoW && paths.PatchesAppliedCrossOver &&
+			paths.TurtlewowPath != "" && paths.CrossoverPath != "" && service.IsServiceRunning() {
 			launchButton.Enable()
 		} else {
 			launchButton.Disable()
 		}
+	}
+
+	// Update Service Status
+	if paths.ServiceStarting {
+		// Show pulsing "Starting..." when service is starting
+		if serviceStatusLabel != nil {
+			if !pulsingActive {
+				pulsingActive = true
+				go startPulsingAnimation()
+			}
+		}
+		if startServiceButton != nil {
+			startServiceButton.Disable()
+		}
+		if stopServiceButton != nil {
+			stopServiceButton.Disable()
+		}
+	} else if service.IsServiceRunning() {
+		pulsingActive = false
+		paths.RosettaX87ServiceRunning = true
+		if serviceStatusLabel != nil {
+			serviceStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Running", Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
+			serviceStatusLabel.Refresh()
+		}
+		if startServiceButton != nil {
+			startServiceButton.Disable()
+		}
+		if stopServiceButton != nil {
+			stopServiceButton.Enable()
+		}
+	} else {
+		pulsingActive = false
+		paths.RosettaX87ServiceRunning = false
+		if serviceStatusLabel != nil {
+			serviceStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Stopped", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+			serviceStatusLabel.Refresh()
+		}
+		if startServiceButton != nil {
+			if paths.TurtlewowPath != "" && paths.PatchesAppliedTurtleWoW {
+				startServiceButton.Enable()
+			} else {
+				startServiceButton.Disable()
+			}
+		}
+		if stopServiceButton != nil {
+			stopServiceButton.Disable()
+		}
+	}
+}
+
+// startPulsingAnimation creates a pulsing effect for the "Starting..." text
+func startPulsingAnimation() {
+	dots := 0
+	for pulsingActive && paths.ServiceStarting {
+		var text string
+		switch dots % 4 {
+		case 0:
+			text = "Starting"
+		case 1:
+			text = "Starting."
+		case 2:
+			text = "Starting.."
+		case 3:
+			text = "Starting..."
+		}
+
+		if serviceStatusLabel != nil {
+			fyne.DoAndWait(func() {
+				serviceStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: text, Style: widget.RichTextStyle{ColorName: theme.ColorNamePrimary}}}
+				serviceStatusLabel.Refresh()
+			})
+		}
+
+		time.Sleep(500 * time.Millisecond)
+		dots++
 	}
 }
 
@@ -153,6 +236,7 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	turtlewowPathLabel = widget.NewRichText()
 	turtlewowStatusLabel = widget.NewRichText()
 	crossoverStatusLabel = widget.NewRichText()
+	serviceStatusLabel = widget.NewRichText()
 
 	// Load the application logo
 	logoResource, err := fyne.LoadResourceFromPath("Icon.png")
@@ -212,6 +296,12 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	unpatchCrossOverButton = widget.NewButton("Unpatch CrossOver", func() {
 		patching.UnpatchCrossOver(myWindow, UpdateAllStatuses)
 	})
+	startServiceButton = widget.NewButton("Start Service", func() {
+		service.StartRosettaX87Service(myWindow, UpdateAllStatuses)
+	})
+	stopServiceButton = widget.NewButton("Stop Service", func() {
+		service.StopRosettaX87Service(myWindow, UpdateAllStatuses)
+	})
 	launchButton = widget.NewButton("Launch Game", func() {
 		launcher.LaunchGame(myWindow)
 	})
@@ -235,10 +325,23 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 		container.NewGridWithColumns(4,
 			widget.NewLabel("CrossOver Patch:"), crossoverStatusLabel, patchCrossOverButton, unpatchCrossOverButton,
 		),
+		container.NewGridWithColumns(4,
+			widget.NewLabel("RosettaX87 Service:"), serviceStatusLabel, startServiceButton, stopServiceButton,
+		),
 		widget.NewSeparator(),
 	)
 
 	UpdateAllStatuses() // Initial UI state update
+
+	// Set up periodic status updates to keep service status in sync
+	go func() {
+		for {
+			time.Sleep(5 * time.Second) // Check every 5 seconds
+			fyne.DoAndWait(func() {
+				UpdateAllStatuses()
+			})
+		}
+	}()
 
 	// Create GitHub link
 	githubURL := "https://github.com/tairasu/TurtleSilicon"

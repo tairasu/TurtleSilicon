@@ -50,10 +50,14 @@ All credit for the core translation layer `winerosetta` and `rosettax87` goes to
     *   Click "Patch TurtleWoW".
     *   Click "Patch CrossOver".
     *   Status indicators will turn green once patching is successful for each.
-6.  **Launch Game**:
-    *   Once both paths are set and both components are patched, the "Launch Game" button will become active. Click it.
-    *   Follow the on-screen prompts (you will need to enter your password in a new Terminal window for `rosettax87`).
-7.  **Enjoy**: Experience a significantly smoother Turtle WoW on your Apple Silicon Mac!
+6.  **Start RosettaX87 Service**:
+    *   Click "Start RosettaX87 Service" and enter your sudo password when prompted.
+    *   This will run the RosettaX87 service in the background and is required for launching the game.
+    *   The service will automatically stop when you close the launcher.
+7.  **Launch Game**:
+    *   Once both paths are set, both components are patched, and the RosettaX87 service is running, the "Launch Game" button will become active. Click it.
+    *   The game will launch directly without requiring additional password prompts.
+8.  **Enjoy**: Experience a significantly smoother Turtle WoW on your Apple Silicon Mac!
 
 ### Method 2: Running from Source Code
 

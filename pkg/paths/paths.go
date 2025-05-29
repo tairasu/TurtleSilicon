@@ -17,10 +17,12 @@ import (
 const DefaultCrossOverPath = "/Applications/CrossOver.app"
 
 var (
-	CrossoverPath           string
-	TurtlewowPath           string
-	PatchesAppliedTurtleWoW = false
-	PatchesAppliedCrossOver = false
+	CrossoverPath            string
+	TurtlewowPath            string
+	PatchesAppliedTurtleWoW  = false
+	PatchesAppliedCrossOver  = false
+	RosettaX87ServiceRunning = false
+	ServiceStarting          = false
 )
 
 func SelectCrossOverPath(myWindow fyne.Window, crossoverPathLabel *widget.RichText, updateAllStatuses func()) {
