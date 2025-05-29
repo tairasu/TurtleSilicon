@@ -100,18 +100,52 @@ func StartRosettaX87Service(myWindow fyne.Window, updateAllStatuses func()) {
 	// Clean up any existing rosettax87 processes first
 	CleanupExistingServices()
 
+	// Load user preferences
+	prefs, err := utils.LoadPrefs()
+	if err != nil {
+		log.Printf("Failed to load preferences: %v", err)
+		prefs = &utils.UserPrefs{} // Use default prefs
+	}
+
+	// Try to get saved password if the user has enabled saving
+	var savedPassword string
+	if prefs.SaveSudoPassword {
+		savedPassword, _ = utils.GetSudoPassword() // Ignore errors, just use empty string
+	}
+
 	// Show password dialog
 	passwordEntry := widget.NewPasswordEntry()
 	passwordEntry.SetPlaceHolder("Enter your sudo password")
+	passwordEntry.SetText(savedPassword) // Prefill with saved password if available
 	passwordEntry.Resize(fyne.NewSize(300, passwordEntry.MinSize().Height))
+
+	// Create checkbox for saving password
+	savePasswordCheck := widget.NewCheck("Save password securely in keychain", nil)
+	savePasswordCheck.SetChecked(prefs.SaveSudoPassword)
+
+	// Add status label if password is already saved
+	var statusLabel *widget.Label
+	if utils.HasSavedSudoPassword() {
+		statusLabel = widget.NewLabel("✓ Password already saved in keychain")
+		statusLabel.Importance = widget.LowImportance
+	}
 
 	// Create a container with proper sizing
 	passwordForm := widget.NewForm(widget.NewFormItem("Password:", passwordEntry))
-	passwordContainer := container.NewVBox(
+
+	var containerItems []fyne.CanvasObject
+	containerItems = append(containerItems,
 		widget.NewLabel("Enter your sudo password to start the RosettaX87 service:"),
 		passwordForm,
+		savePasswordCheck,
 	)
-	passwordContainer.Resize(fyne.NewSize(400, 100))
+
+	if statusLabel != nil {
+		containerItems = append(containerItems, statusLabel)
+	}
+
+	passwordContainer := container.NewVBox(containerItems...)
+	passwordContainer.Resize(fyne.NewSize(400, 140))
 
 	// Create the dialog variable so we can reference it in the callback
 	var passwordDialog dialog.Dialog
@@ -122,6 +156,25 @@ func StartRosettaX87Service(myWindow fyne.Window, updateAllStatuses func()) {
 		if password == "" {
 			dialog.ShowError(fmt.Errorf("password cannot be empty"), myWindow)
 			return
+		}
+
+		// Handle password saving/deleting based on checkbox state
+		shouldSavePassword := savePasswordCheck.Checked
+		if shouldSavePassword {
+			// Save password to keychain
+			if err := utils.SaveSudoPassword(password); err != nil {
+				log.Printf("Failed to save password to keychain: %v", err)
+				// Don't block the service start, just log the error
+			}
+		} else {
+			// Delete any existing saved password
+			utils.DeleteSudoPassword() // Ignore errors
+		}
+
+		// Update preferences
+		prefs.SaveSudoPassword = shouldSavePassword
+		if err := utils.SavePrefs(prefs); err != nil {
+			log.Printf("Failed to save preferences: %v", err)
 		}
 
 		// Close the dialog
@@ -359,4 +412,25 @@ func CleanupService() {
 	ServiceRunning = false
 	serviceCmd = nil
 	servicePID = 0
+}
+
+// ClearSavedPassword removes the saved password and shows a confirmation dialog
+func ClearSavedPassword(myWindow fyne.Window) {
+	if !utils.HasSavedSudoPassword() {
+		dialog.ShowInformation("Password Status", "No password is currently saved.", myWindow)
+		return
+	}
+
+	dialog.ShowConfirm("Clear Saved Password",
+		"Are you sure you want to remove the saved password from the keychain?",
+		func(confirmed bool) {
+			if confirmed {
+				err := utils.DeleteSudoPassword()
+				if err != nil {
+					dialog.ShowError(fmt.Errorf("failed to clear saved password: %v", err), myWindow)
+				} else {
+					dialog.ShowInformation("Password Cleared", "The saved password has been removed from the keychain.", myWindow)
+				}
+			}
+		}, myWindow)
 }

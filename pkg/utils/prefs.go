@@ -11,6 +11,7 @@ type UserPrefs struct {
 	TurtleWoWPath           string `json:"turtlewow_path"`
 	CrossOverPath           string `json:"crossover_path"`
 	EnvironmentVariables    string `json:"environment_variables"`
+	SaveSudoPassword        bool   `json:"save_sudo_password"`
 }
 
 func getPrefsPath() (string, error) {
