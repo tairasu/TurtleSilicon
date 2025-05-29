@@ -25,6 +25,56 @@ var (
 	servicePID     int
 )
 
+// CleanupExistingServices kills any existing rosettax87 processes
+func CleanupExistingServices() error {
+	log.Println("Cleaning up any existing rosettax87 processes...")
+
+	// Find all rosettax87 processes
+	cmd := exec.Command("pgrep", "-f", "rosettax87")
+	output, err := cmd.Output()
+	if err != nil {
+		// No processes found, that's fine
+		return nil
+	}
+
+	pids := strings.Fields(strings.TrimSpace(string(output)))
+	if len(pids) == 0 {
+		return nil
+	}
+
+	// Kill all found processes without sudo (try regular kill first)
+	for _, pid := range pids {
+		// First try regular kill
+		killCmd := exec.Command("kill", "-9", pid)
+		err := killCmd.Run()
+		if err != nil {
+			// If regular kill fails, try with sudo (but this might fail too)
+			log.Printf("Regular kill failed for process %s, trying sudo: %v", pid, err)
+			sudoKillCmd := exec.Command("sudo", "kill", "-9", pid)
+			err2 := sudoKillCmd.Run()
+			if err2 != nil {
+				log.Printf("Failed to kill process %s with sudo: %v", pid, err2)
+			} else {
+				log.Printf("Killed existing rosettax87 process with sudo: %s", pid)
+			}
+		} else {
+			log.Printf("Killed existing rosettax87 process: %s", pid)
+		}
+	}
+
+	// Wait a moment for processes to die
+	time.Sleep(1 * time.Second)
+	return nil
+}
+
+// isRosettaSocketActive checks if the rosetta helper socket is active
+func isRosettaSocketActive() bool {
+	// Check if the socket file exists and is accessible
+	cmd := exec.Command("ls", "-la", "/var/run/rosetta_helper.sock")
+	err := cmd.Run()
+	return err == nil
+}
+
 // StartRosettaX87Service starts the RosettaX87 service with sudo privileges
 func StartRosettaX87Service(myWindow fyne.Window, updateAllStatuses func()) {
 	log.Println("Starting RosettaX87 service...")
@@ -46,6 +96,9 @@ func StartRosettaX87Service(myWindow fyne.Window, updateAllStatuses func()) {
 		dialog.ShowInformation("Service Status", "RosettaX87 service is already running.", myWindow)
 		return
 	}
+
+	// Clean up any existing rosettax87 processes first
+	CleanupExistingServices()
 
 	// Show password dialog
 	passwordEntry := widget.NewPasswordEntry()
@@ -123,15 +176,20 @@ func StartRosettaX87Service(myWindow fyne.Window, updateAllStatuses func()) {
 
 // startServiceWithPassword starts the service using sudo with the provided password
 func startServiceWithPassword(workingDir, executable, password string) error {
-	// First test if the password is correct with a simple sudo command
-	testCmd := exec.Command("sudo", "-S", "-v")
+	// First clear any existing sudo credentials to ensure fresh authentication
+	clearCmd := exec.Command("sudo", "-k")
+	clearCmd.Run() // Ignore errors
+
+	// Test the password with a simple command that requires sudo
+	testCmd := exec.Command("sudo", "-S", "echo", "test")
 	testStdin, err := testCmd.StdinPipe()
 	if err != nil {
 		return fmt.Errorf("failed to create test stdin pipe: %v", err)
 	}
 
-	// Capture stderr to check for authentication errors
-	var stderr bytes.Buffer
+	// Capture both stdout and stderr
+	var stdout, stderr bytes.Buffer
+	testCmd.Stdout = &stdout
 	testCmd.Stderr = &stderr
 
 	err = testCmd.Start()
@@ -149,17 +207,39 @@ func startServiceWithPassword(workingDir, executable, password string) error {
 
 	// Wait for the test command to complete
 	err = testCmd.Wait()
+	stderrOutput := stderr.String()
+	stdoutOutput := stdout.String()
+
+	log.Printf("Password test - Exit code: %v, Stderr: %q, Stdout: %q", err, stderrOutput, stdoutOutput)
+
+	// Check for authentication failure indicators
+	if strings.Contains(stderrOutput, "Sorry, try again") ||
+		strings.Contains(stderrOutput, "incorrect password") ||
+		strings.Contains(stderrOutput, "authentication failure") ||
+		strings.Contains(stderrOutput, "1 incorrect password attempt") {
+		return fmt.Errorf("incorrect password")
+	}
+
 	if err != nil {
-		stderrOutput := stderr.String()
-		if strings.Contains(stderrOutput, "Sorry, try again") || strings.Contains(stderrOutput, "incorrect password") {
-			return fmt.Errorf("incorrect password")
-		}
-		return fmt.Errorf("sudo authentication failed: %v", err)
+		return fmt.Errorf("sudo authentication failed: %v, stderr: %s", err, stderrOutput)
+	}
+
+	// Additional check: the stdout should contain "test" if the command succeeded
+	if !strings.Contains(stdoutOutput, "test") {
+		return fmt.Errorf("password authentication failed - no expected output")
 	}
 
 	// If we get here, the password is correct, now start the actual service
+	log.Println("Password validated successfully, starting rosettax87 service...")
+
 	cmd := exec.Command("sudo", "-S", executable)
 	cmd.Dir = workingDir
+
+	// Capture both stdout and stderr for debugging (reuse existing variables)
+	stdout.Reset()
+	stderr.Reset()
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
 	// Create a pipe to send the password
 	stdin, err := cmd.StdinPipe()
@@ -186,14 +266,25 @@ func startServiceWithPassword(workingDir, executable, password string) error {
 	servicePID = cmd.Process.Pid
 
 	// Wait a moment to see if the process starts successfully
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	// Check if the process is still running
 	if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
-		return fmt.Errorf("process exited prematurely with code: %d", cmd.ProcessState.ExitCode())
+		stderrOutput := stderr.String()
+		stdoutOutput := stdout.String()
+		log.Printf("Process exited - Stdout: %q, Stderr: %q", stdoutOutput, stderrOutput)
+		return fmt.Errorf("process exited prematurely with code: %d. Stderr: %s", cmd.ProcessState.ExitCode(), stderrOutput)
 	}
 
-	log.Printf("RosettaX87 service started with PID: %d", servicePID)
+	// Verify the service is actually listening
+	time.Sleep(1 * time.Second)
+	if !isRosettaSocketActive() {
+		log.Printf("Service started but socket not active - Stdout: %q, Stderr: %q", stdout.String(), stderr.String())
+		cmd.Process.Kill()
+		return fmt.Errorf("service started but is not listening on socket")
+	}
+
+	log.Printf("RosettaX87 service started successfully with PID: %d", servicePID)
 	return nil
 }
 
@@ -240,31 +331,32 @@ func StopRosettaX87Service(myWindow fyne.Window, updateAllStatuses func()) {
 
 // IsServiceRunning checks if the RosettaX87 service is currently running
 func IsServiceRunning() bool {
-	if !ServiceRunning {
+	// Check for any rosettax87 process running system-wide
+	cmd := exec.Command("pgrep", "-f", "rosettax87")
+	output, err := cmd.Output()
+	if err != nil {
+		// No rosettax87 process found
+		ServiceRunning = false
+		serviceCmd = nil
+		servicePID = 0
 		return false
 	}
 
-	// Double-check by verifying the process is still alive
-	if serviceCmd != nil && serviceCmd.Process != nil {
-		// Check if process is still running
-		err := serviceCmd.Process.Signal(syscall.Signal(0))
-		if err != nil {
-			// Process is not running
-			ServiceRunning = false
-			serviceCmd = nil
-			servicePID = 0
-			return false
-		}
+	// If there are rosettax87 processes running, the service is considered running
+	if len(strings.TrimSpace(string(output))) > 0 {
+		ServiceRunning = true
+		return true
 	}
 
-	return ServiceRunning
+	ServiceRunning = false
+	return false
 }
 
 // CleanupService ensures the service is stopped when the application exits
 func CleanupService() {
-	if ServiceRunning && serviceCmd != nil && serviceCmd.Process != nil {
-		log.Println("Cleaning up RosettaX87 service on application exit...")
-		serviceCmd.Process.Kill()
-		ServiceRunning = false
-	}
+	log.Println("Cleaning up RosettaX87 service on application exit...")
+	CleanupExistingServices()
+	ServiceRunning = false
+	serviceCmd = nil
+	servicePID = 0
 }
