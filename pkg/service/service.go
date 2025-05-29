@@ -1,10 +1,12 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -121,7 +123,41 @@ func StartRosettaX87Service(myWindow fyne.Window, updateAllStatuses func()) {
 
 // startServiceWithPassword starts the service using sudo with the provided password
 func startServiceWithPassword(workingDir, executable, password string) error {
-	// Use sudo with the password
+	// First test if the password is correct with a simple sudo command
+	testCmd := exec.Command("sudo", "-S", "-v")
+	testStdin, err := testCmd.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("failed to create test stdin pipe: %v", err)
+	}
+
+	// Capture stderr to check for authentication errors
+	var stderr bytes.Buffer
+	testCmd.Stderr = &stderr
+
+	err = testCmd.Start()
+	if err != nil {
+		return fmt.Errorf("failed to start test command: %v", err)
+	}
+
+	// Send the password for testing
+	_, err = testStdin.Write([]byte(password + "\n"))
+	if err != nil {
+		testCmd.Process.Kill()
+		return fmt.Errorf("failed to send test password: %v", err)
+	}
+	testStdin.Close()
+
+	// Wait for the test command to complete
+	err = testCmd.Wait()
+	if err != nil {
+		stderrOutput := stderr.String()
+		if strings.Contains(stderrOutput, "Sorry, try again") || strings.Contains(stderrOutput, "incorrect password") {
+			return fmt.Errorf("incorrect password")
+		}
+		return fmt.Errorf("sudo authentication failed: %v", err)
+	}
+
+	// If we get here, the password is correct, now start the actual service
 	cmd := exec.Command("sudo", "-S", executable)
 	cmd.Dir = workingDir
 
