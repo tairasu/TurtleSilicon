@@ -1,5 +1,5 @@
 > [!CAUTION]
-> **Currently not recommended for hardcore mode.** This method is unstable and the client can crash at any moment. The patches are in early development.
+> **Currently not recommended for hardcore mode.** Freezes have been fixed but use with caution.
 
 # TurtleSilicon <img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center">
 
@@ -85,9 +85,7 @@ If you prefer to run the application directly from source code:
 ## Recommended settings
 
 1. Set "Terrain distance" as low as possible. This reduces the overhead stress on the CPU
-2. Turn VSync on. Too high fps causes the client to freeze.
-   * Alternatively: Create a dxvk.conf file inside your TurtleWoW directory and enter `d3d9.maxFrameRate = 120`. Set it to a value of 180 or lower
-3. Turn Vertex Animation Shaders on. Otherwise you get graphic glitches on custom models.
+2. Turn Vertex Animation Shaders on. Otherwise you get graphic glitches on custom models.
 
 ## Build Instructions
 
