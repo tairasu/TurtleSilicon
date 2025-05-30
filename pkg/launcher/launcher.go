@@ -70,7 +70,7 @@ func LaunchGame(myWindow fyne.Window) {
 	}
 
 	// Prepare environment variables
-	envVars := fmt.Sprintf(`WINEDLLOVERRIDES="d3d9=n,b" MTL_HUD_ENABLED=%s`, mtlHudValue)
+	envVars := fmt.Sprintf(`WINEDLLOVERRIDES="d3d9=n,b" MTL_HUD_ENABLED=%s MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=1`, mtlHudValue)
 	if CustomEnvVars != "" {
 		envVars = CustomEnvVars + " " + envVars
 	}
