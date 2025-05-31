@@ -12,6 +12,7 @@ type UserPrefs struct {
 	CrossOverPath           string `json:"crossover_path"`
 	EnvironmentVariables    string `json:"environment_variables"`
 	SaveSudoPassword        bool   `json:"save_sudo_password"`
+	ShowTerminalNormally    bool   `json:"show_terminal_normally"`
 }
 
 func getPrefsPath() (string, error) {

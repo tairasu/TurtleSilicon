@@ -1,9 +1,13 @@
 package launcher
 
 import (
+	"bufio"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"sync"
 
 	"turtlesilicon/pkg/paths" // Corrected import path
 	"turtlesilicon/pkg/utils" // Corrected import path
@@ -14,6 +18,87 @@ import (
 
 var EnableMetalHud = true // Default to enabled
 var CustomEnvVars = ""    // Custom environment variables
+
+// Terminal state management
+var (
+	currentGameProcess *exec.Cmd
+	isGameRunning      bool
+	gameMutex          sync.Mutex
+)
+
+// runGameIntegrated runs the game with integrated terminal output
+func runGameIntegrated(parentWindow fyne.Window, shellCmd string) error {
+	gameMutex.Lock()
+	defer gameMutex.Unlock()
+
+	if isGameRunning {
+		return fmt.Errorf("game is already running")
+	}
+
+	isGameRunning = true
+
+	// Parse the shell command to extract components
+	// The shellCmd format is: cd <path> && <envVars> <rosettaExec> <wineloader> <wowExe>
+	log.Printf("Parsing shell command: %s", shellCmd)
+
+	// Create the command without context cancellation
+	cmd := exec.Command("sh", "-c", shellCmd)
+
+	// Set up stdout and stderr pipes
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		isGameRunning = false
+		return err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		isGameRunning = false
+		return err
+	}
+
+	currentGameProcess = cmd
+
+	// Start the process
+	if err := cmd.Start(); err != nil {
+		isGameRunning = false
+		return err
+	}
+
+	// Monitor output in goroutines
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			line := scanner.Text()
+			log.Printf("GAME STDOUT: %s", line)
+		}
+	}()
+
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			line := scanner.Text()
+			log.Printf("GAME STDERR: %s", line)
+		}
+	}()
+
+	// Wait for the process to complete in a goroutine
+	go func() {
+		defer func() {
+			gameMutex.Lock()
+			isGameRunning = false
+			currentGameProcess = nil
+			gameMutex.Unlock()
+		}()
+
+		if err := cmd.Wait(); err != nil {
+			log.Printf("Game process ended with error: %v", err)
+		} else {
+			log.Println("Game process ended successfully")
+		}
+	}()
+
+	return nil
+}
 
 func LaunchGame(myWindow fyne.Window) {
 	log.Println("Launch Game button clicked")
@@ -35,6 +120,15 @@ func LaunchGame(myWindow fyne.Window) {
 			return
 		}
 	}
+
+	// Check if game is already running
+	gameMutex.Lock()
+	if isGameRunning {
+		gameMutex.Unlock()
+		dialog.ShowInformation("Game Already Running", "The game is already running.", myWindow)
+		return
+	}
+	gameMutex.Unlock()
 
 	log.Println("Preparing to launch TurtleSilicon...")
 
@@ -82,13 +176,53 @@ func LaunchGame(myWindow fyne.Window) {
 		utils.QuotePathForShell(wineloader2Path),
 		utils.QuotePathForShell(wowExePath))
 
-	escapedShellCmd := utils.EscapeStringForAppleScript(shellCmd)
-	cmd2Script := fmt.Sprintf("tell application \"Terminal\" to do script \"%s\"", escapedShellCmd)
+	// Check user preference for terminal display
+	prefs, _ := utils.LoadPrefs()
 
-	log.Println("Executing WoW launch command via AppleScript...")
-	if !utils.RunOsascript(cmd2Script, myWindow) {
-		return
+	if prefs.ShowTerminalNormally {
+		// Use the old method with external Terminal.app
+		escapedShellCmd := utils.EscapeStringForAppleScript(shellCmd)
+		cmd2Script := fmt.Sprintf("tell application \"Terminal\" to do script \"%s\"", escapedShellCmd)
+
+		log.Println("Executing WoW launch command via AppleScript...")
+		if !utils.RunOsascript(cmd2Script, myWindow) {
+			return
+		}
+
+		log.Println("Launch command executed. Check the new terminal window.")
+	} else {
+		// Use integrated terminal
+		log.Printf("Shell command for integrated terminal: %s", shellCmd)
+		log.Println("Executing WoW launch command with integrated terminal...")
+		if err := runGameIntegrated(myWindow, shellCmd); err != nil {
+			dialog.ShowError(fmt.Errorf("failed to launch game: %v", err), myWindow)
+			return
+		}
+		log.Println("Game launched with integrated terminal. Check the application logs for output.")
+	}
+}
+
+// IsGameRunning returns true if the game is currently running
+func IsGameRunning() bool {
+	gameMutex.Lock()
+	defer gameMutex.Unlock()
+	return isGameRunning
+}
+
+// StopGame forcefully stops the running game
+func StopGame() error {
+	gameMutex.Lock()
+	defer gameMutex.Unlock()
+
+	if !isGameRunning || currentGameProcess == nil {
+		return fmt.Errorf("no game process is running")
 	}
 
-	log.Println("Launch command executed. Check the new terminal window.")
+	// Try to terminate gracefully first
+	if err := currentGameProcess.Process.Signal(os.Interrupt); err != nil {
+		// If that fails, force kill
+		return currentGameProcess.Process.Kill()
+	}
+
+	return nil
 }

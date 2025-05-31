@@ -35,6 +35,7 @@ var (
 	startServiceButton     *widget.Button
 	stopServiceButton      *widget.Button
 	metalHudCheckbox       *widget.Check
+	showTerminalCheckbox   *widget.Check
 	envVarsEntry           *widget.Entry
 	pulsingActive          = false
 )
@@ -267,6 +268,15 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	})
 	metalHudCheckbox.SetChecked(launcher.EnableMetalHud)
 
+	showTerminalCheckbox = widget.NewCheck("Show Terminal", func(checked bool) {
+		// Save to preferences
+		prefs, _ := utils.LoadPrefs()
+		prefs.ShowTerminalNormally = checked
+		utils.SavePrefs(prefs)
+		log.Printf("Show terminal normally: %v", checked)
+	})
+	showTerminalCheckbox.SetChecked(prefs.ShowTerminalNormally)
+
 	// Load environment variables from preferences
 	if prefs.EnvironmentVariables != "" {
 		launcher.CustomEnvVars = prefs.EnvironmentVariables
@@ -356,7 +366,11 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 		logoContainer,
 		pathSelectionForm,
 		patchOperationsLayout,
-		metalHudCheckbox,
+		container.NewHBox(
+			metalHudCheckbox,
+			showTerminalCheckbox,
+		),
+		widget.NewSeparator(),
 		widget.NewLabel("Environment Variables:"),
 		envVarsEntry,
 		container.NewPadded(launchButton),
