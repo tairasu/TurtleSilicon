@@ -98,8 +98,10 @@ func UpdatePathLabels(crossoverPathLabel, turtlewowPathLabel *widget.RichText) {
 }
 
 func CheckDefaultCrossOverPath() {
-	if info, err := os.Stat(DefaultCrossOverPath); err == nil && info.IsDir() {
-		CrossoverPath = DefaultCrossOverPath
-		log.Println("Pre-set CrossOver to default:", DefaultCrossOverPath)
+	if CrossoverPath == "" {
+		if info, err := os.Stat(DefaultCrossOverPath); err == nil && info.IsDir() {
+			CrossoverPath = DefaultCrossOverPath
+			log.Println("Pre-set CrossOver to default:", DefaultCrossOverPath)
+		}
 	}
 }
