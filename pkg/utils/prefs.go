@@ -13,6 +13,7 @@ type UserPrefs struct {
 	EnvironmentVariables    string `json:"environment_variables"`
 	SaveSudoPassword        bool   `json:"save_sudo_password"`
 	ShowTerminalNormally    bool   `json:"show_terminal_normally"`
+	EnableVanillaTweaks     bool   `json:"enable_vanilla_tweaks"`
 }
 
 func getPrefsPath() (string, error) {

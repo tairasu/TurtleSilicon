@@ -36,6 +36,7 @@ var (
 	stopServiceButton      *widget.Button
 	metalHudCheckbox       *widget.Check
 	showTerminalCheckbox   *widget.Check
+	vanillaTweaksCheckbox  *widget.Check
 	envVarsEntry           *widget.Entry
 	pulsingActive          = false
 )
@@ -277,6 +278,17 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	})
 	showTerminalCheckbox.SetChecked(prefs.ShowTerminalNormally)
 
+	vanillaTweaksCheckbox = widget.NewCheck("Enable vanilla-tweaks", func(checked bool) {
+		launcher.EnableVanillaTweaks = checked
+		// Save to preferences
+		prefs, _ := utils.LoadPrefs()
+		prefs.EnableVanillaTweaks = checked
+		utils.SavePrefs(prefs)
+		log.Printf("Vanilla-tweaks enabled: %v", launcher.EnableVanillaTweaks)
+	})
+	vanillaTweaksCheckbox.SetChecked(prefs.EnableVanillaTweaks)
+	launcher.EnableVanillaTweaks = prefs.EnableVanillaTweaks
+
 	// Load environment variables from preferences
 	if prefs.EnvironmentVariables != "" {
 		launcher.CustomEnvVars = prefs.EnvironmentVariables
@@ -344,14 +356,14 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	UpdateAllStatuses() // Initial UI state update
 
 	// Set up periodic status updates to keep service status in sync
-	go func() {
-		for {
-			time.Sleep(5 * time.Second) // Check every 5 seconds
-			fyne.DoAndWait(func() {
-				UpdateAllStatuses()
-			})
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		time.Sleep(5 * time.Second) // Check every 5 seconds
+	// 		fyne.DoAndWait(func() {
+	// 			UpdateAllStatuses()
+	// 		})
+	// 	}
+	// }()
 
 	// Create GitHub link
 	githubURL := "https://github.com/tairasu/TurtleSilicon"
@@ -362,19 +374,22 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	githubLink := widget.NewHyperlink("GitHub Repository", parsedURL)
 	githubContainer := container.NewCenter(githubLink)
 
-	return container.NewVBox(
-		logoContainer,
-		pathSelectionForm,
-		patchOperationsLayout,
-		container.NewHBox(
-			metalHudCheckbox,
-			showTerminalCheckbox,
+	return container.NewPadded(
+		container.NewVBox(
+			logoContainer,
+			pathSelectionForm,
+			patchOperationsLayout,
+			container.NewGridWithColumns(3,
+				metalHudCheckbox,
+				showTerminalCheckbox,
+				vanillaTweaksCheckbox,
+			),
+			widget.NewSeparator(),
+			widget.NewLabel("Environment Variables:"),
+			envVarsEntry,
+			container.NewPadded(launchButton),
+			widget.NewSeparator(),
+			githubContainer,
 		),
-		widget.NewSeparator(),
-		widget.NewLabel("Environment Variables:"),
-		envVarsEntry,
-		container.NewPadded(launchButton),
-		widget.NewSeparator(),
-		githubContainer,
 	)
 }

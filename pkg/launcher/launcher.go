@@ -16,8 +16,9 @@ import (
 	"fyne.io/fyne/v2/dialog"
 )
 
-var EnableMetalHud = true // Default to enabled
-var CustomEnvVars = ""    // Custom environment variables
+var EnableMetalHud = true       // Default to enabled
+var CustomEnvVars = ""          // Custom environment variables
+var EnableVanillaTweaks = false // Default to disabled
 
 // Terminal state management
 var (
@@ -132,10 +133,36 @@ func LaunchGame(myWindow fyne.Window) {
 
 	log.Println("Preparing to launch TurtleSilicon...")
 
+	// Determine which WoW executable to use based on vanilla-tweaks preference
+	var wowExePath string
+	if EnableVanillaTweaks {
+		if !CheckForWoWTweakedExecutable() {
+			// Show dialog asking if user wants us to apply vanilla-tweaks
+			HandleVanillaTweaksRequest(myWindow, func() {
+				// After successful patching, continue with launch using the tweaked executable
+				wowTweakedExePath := GetWoWTweakedExecutablePath()
+				if wowTweakedExePath != "" {
+					continueLaunch(myWindow, wowTweakedExePath)
+				} else {
+					dialog.ShowError(fmt.Errorf("failed to find WoW-tweaked.exe after patching"), myWindow)
+				}
+			})
+			return // Exit early since dialog will handle the continuation
+		}
+		wowExePath = GetWoWTweakedExecutablePath()
+	} else {
+		wowExePath = filepath.Join(paths.TurtlewowPath, "WoW.exe")
+	}
+
+	// Continue with normal launch process
+	continueLaunch(myWindow, wowExePath)
+}
+
+// continueLaunch continues the game launch process with the specified executable
+func continueLaunch(myWindow fyne.Window, wowExePath string) {
 	rosettaInTurtlePath := filepath.Join(paths.TurtlewowPath, "rosettax87")
 	rosettaExecutable := filepath.Join(rosettaInTurtlePath, "rosettax87")
 	wineloader2Path := filepath.Join(paths.CrossoverPath, "Contents", "SharedSupport", "CrossOver", "CrossOver-Hosted Application", "wineloader2")
-	wowExePath := filepath.Join(paths.TurtlewowPath, "wow.exe") // Corrected to wow.exe
 
 	if !utils.PathExists(rosettaExecutable) {
 		dialog.ShowError(fmt.Errorf("rosetta executable not found at %s. Ensure TurtleWoW patching was successful", rosettaExecutable), myWindow)
@@ -146,7 +173,7 @@ func LaunchGame(myWindow fyne.Window) {
 		return
 	}
 	if !utils.PathExists(wowExePath) {
-		dialog.ShowError(fmt.Errorf("wow.exe not found at %s. Ensure your TurtleWoW directory is correct", wowExePath), myWindow)
+		dialog.ShowError(fmt.Errorf("WoW executable not found at %s. Ensure your TurtleWoW directory is correct", wowExePath), myWindow)
 		return
 	}
 
