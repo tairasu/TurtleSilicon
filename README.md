@@ -1,11 +1,8 @@
-> [!CAUTION]
-> **Currently not recommended for hardcore mode.** Freezes have been fixed but use with caution.
-
 # TurtleSilicon <img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center">
 
 <div align="center">
 <img src="img/turtlesilicon-fps_v2.png" alt="Turtle WoW FPS on Apple Silicon" width="49%" />
-<img src="img/turtlesilicon-app_v2.png" alt="TurtleSilicon Application" width="49%" />
+<img src="img/turtlesilicon-app_v3.png" alt="TurtleSilicon Application" width="49%" />
 </div>
 
 A user-friendly launcher for Turtle WoW on Apple Silicon Macs, with one-click patching of winerosetta, rosettax87 and d9vk.
@@ -14,7 +11,7 @@ A user-friendly launcher for Turtle WoW on Apple Silicon Macs, with one-click pa
 
 Before you begin, ensure you have the following:
 
-*   A working version of **CrossOver** installed (the trial version is sufficient).
+*   A working version of **CrossOver** installed (the trial version is sufficient and can still be used after expiration).
 *   The **Turtle WoW Client** downloaded from the official website.
 
 ## Credits
@@ -25,15 +22,16 @@ All credit for the core translation layer `winerosetta` and `rosettax87` goes to
 
 [https://github.com/Lifeisawful/rosettax87](https://github.com/Lifeisawful/rosettax87)
 
-## Features & Highlights
+## Features
 
-*   💻 **Run 32-bit DirectX9 World of Warcraft (v1.12) on Apple Silicon:** Enjoy the classic WoW experience on your modern Mac without "illegal instruction" errors.
-*   🚀 **Significant Performance Boost:**
-    *   Utilizes the `rosettax87` hack by LifeisAwful to accelerate x87 FPU instructions.
-    *   Integrates `d9vk` (a fork of DXVK for MoltenVK) by Kegworks-App, enabling DirectX9 to run much more efficiently on Apple Silicon via Vulkan and Metal.
-    *   Experience a massive FPS increase: from around 20 FPS in unoptimized environments to **up to 200 FPS** (a 10x improvement!) in many areas.
-*   🖱️ **One-Click Patching:** Simplifies the setup process for both CrossOver and your Turtle WoW installation.
-*   🎨 **User-Friendly Interface:** Easy-to-use GUI built with Fyne.
+*   **Apple Silicon Compatibility:** Runs 32-bit DirectX9 World of Warcraft (v1.12) on M1/M2/M3/M4 Macs without "illegal instruction" errors.
+*   **Performance Optimization:** 
+    *   Integrates `rosettax87` for accelerated x87 FPU instructions
+    *   Uses `d9vk` for efficient DirectX9 via Vulkan/Metal translation
+    *   Achieves significant FPS improvements (20 FPS → 200+ FPS in many scenarios)
+*   **Vanilla-Tweaks Support:** Optional integration with automatic application.
+*   **Automated Setup:** One-click patching for both CrossOver and Turtle WoW installations.
+*   **Simple Interface:** Easy to use GUI with status indicators and configuration options.
 
 ## Usage
 
@@ -54,10 +52,14 @@ All credit for the core translation layer `winerosetta` and `rosettax87` goes to
     *   Click "Start RosettaX87 Service" and enter your sudo password when prompted.
     *   This will run the RosettaX87 service in the background and is required for launching the game.
     *   The service will automatically stop when you close the launcher.
-7.  **Launch Game**:
+7.  **Configure Options (Optional)**:
+    *   **Enable vanilla-tweaks**: Check this box to use vanilla-tweaks, which provides various game improvements and fixes.
+    *   If vanilla-tweaks hasn't been applied yet, TurtleSilicon will automatically offer to apply it when you launch the game.
+    *   **Enable Metal Hud**: Shows FPS counter in-game.
+    *   **Show Terminal**: Displays terminal output during game launch for debugging.
+8.  **Launch Game**:
     *   Once both paths are set, both components are patched, and the RosettaX87 service is running, the "Launch Game" button will become active. Click it.
-    *   The game will launch directly without requiring additional password prompts.
-8.  **Enjoy**: Experience a significantly smoother Turtle WoW on your Apple Silicon Mac!
+9.  **Enjoy**: Experience a significantly smoother Turtle WoW on your Apple Silicon Mac!
 
 ### Method 2: Running from Source Code
 
@@ -127,3 +129,7 @@ Make sure you have an `Icon.png` file in the root of the project directory befor
 The `rosettax87` and `winerosetta` components included in this application are precompiled for convenience. If you prefer, you can compile them yourself by following the instructions provided by Lifeisawful on the official repositories: 
 [https://github.com/Lifeisawful/winerosetta](https://github.com/Lifeisawful/winerosetta)
 [https://github.com/Lifeisawful/rosettax87](https://github.com/Lifeisawful/rosettax87)
+
+## License
+
+This project is licensed under the MIT License.
