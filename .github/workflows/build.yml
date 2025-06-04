@@ -1,4 +1,4 @@
-name: Build
+name: Build Go/Fyne App for macOS ARM64
 
 on:
   push:
