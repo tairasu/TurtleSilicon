@@ -1,5 +1,7 @@
 # TurtleSilicon <img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center">
 
+[![Build](https://github.com/tairasu/TurtleSilicon/actions/workflows/build.yml/badge.svg)](https://github.com/tairasu/TurtleSilicon/actions/workflows/build.yml)
+
 <div align="center">
 <img src="img/turtlesilicon-fps_v2.png" alt="Turtle WoW FPS on Apple Silicon" width="49%" />
 <img src="img/turtlesilicon-app_v3.png" alt="TurtleSilicon Application" width="49%" />
