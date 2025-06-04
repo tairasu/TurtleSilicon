@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -99,7 +100,7 @@ func RunOsascript(scriptString string, myWindow fyne.Window) bool {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		errMsg := fmt.Sprintf("AppleScript failed: %v\nOutput: %s", err, string(output))
-		dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+		dialog.ShowError(errors.New(errMsg), myWindow)
 		log.Println(errMsg)
 		return false
 	}

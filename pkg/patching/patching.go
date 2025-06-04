@@ -2,6 +2,7 @@ package patching
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -10,10 +11,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/dialog"
 	"turtlesilicon/pkg/paths" // Corrected import path
 	"turtlesilicon/pkg/utils" // Corrected import path
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/dialog"
 )
 
 func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
@@ -39,7 +41,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		resource, err := fyne.LoadResourceFromPath(resourceName)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
@@ -49,7 +51,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		destinationFile, err := os.Create(destPath)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to create destination file %s: %v", destPath, err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
@@ -60,7 +62,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		_, err = io.Copy(destinationFile, bytes.NewReader(resource.Content()))
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to copy bundled resource %s to %s: %v", resourceName, destPath, err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
@@ -75,7 +77,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 	}
 	if err := os.MkdirAll(targetRosettaX87Dir, 0755); err != nil {
 		errMsg := fmt.Sprintf("failed to create directory %s: %v", targetRosettaX87Dir, err)
-		dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+		dialog.ShowError(errors.New(errMsg), myWindow)
 		log.Println(errMsg)
 		paths.PatchesAppliedTurtleWoW = false
 		updateAllStatuses()
@@ -92,7 +94,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		resource, err := fyne.LoadResourceFromPath(resourceName)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
@@ -102,7 +104,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		destinationFile, err := os.Create(destPath)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to create destination file %s: %v", destPath, err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
@@ -113,7 +115,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		if err != nil {
 			destinationFile.Close()
 			errMsg := fmt.Sprintf("failed to copy bundled resource %s to %s: %v", resourceName, destPath, err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
@@ -125,7 +127,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			log.Printf("Setting execute permission for %s", destPath)
 			if err := os.Chmod(destPath, 0755); err != nil {
 				errMsg := fmt.Sprintf("failed to set execute permission for %s: %v", destPath, err)
-				dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+				dialog.ShowError(errors.New(errMsg), myWindow)
 				log.Println(errMsg)
 				paths.PatchesAppliedTurtleWoW = false
 				updateAllStatuses()
@@ -162,7 +164,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			fileContentBytes, err = os.ReadFile(dllsTextFile)
 			if err != nil {
 				errMsg := fmt.Sprintf("failed to read dlls.txt for update: %v", err)
-				dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+				dialog.ShowError(errors.New(errMsg), myWindow)
 				log.Println(errMsg)
 			}
 		}
@@ -189,7 +191,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 
 		if err := os.WriteFile(dllsTextFile, []byte(updatedContent), 0644); err != nil {
 			errMsg := fmt.Sprintf("failed to update dlls.txt: %v", err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 		} else {
 			log.Printf("Successfully updated dlls.txt")
@@ -232,7 +234,7 @@ func PatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
 	combinedOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		derrMsg := fmt.Sprintf("failed to remove signature from %s: %v\nOutput: %s", wineloaderCopy, err, string(combinedOutput))
-		dialog.ShowError(fmt.Errorf(derrMsg), myWindow)
+		dialog.ShowError(errors.New(derrMsg), myWindow)
 		log.Println(derrMsg)
 		paths.PatchesAppliedCrossOver = false
 		if err := os.Remove(wineloaderCopy); err != nil {
@@ -246,7 +248,7 @@ func PatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
 	log.Printf("Setting execute permissions for %s", wineloaderCopy)
 	if err := os.Chmod(wineloaderCopy, 0755); err != nil {
 		errMsg := fmt.Sprintf("failed to set executable permissions for %s: %v", wineloaderCopy, err)
-		dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+		dialog.ShowError(errors.New(errMsg), myWindow)
 		log.Println(errMsg)
 		paths.PatchesAppliedCrossOver = false
 		updateAllStatuses()
@@ -278,7 +280,7 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		log.Printf("Removing directory: %s", rosettaX87DirPath)
 		if err := os.RemoveAll(rosettaX87DirPath); err != nil {
 			errMsg := fmt.Sprintf("failed to remove directory %s: %v", rosettaX87DirPath, err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 		} else {
 			log.Printf("Successfully removed directory: %s", rosettaX87DirPath)
@@ -292,7 +294,7 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			log.Printf("Removing file: %s", file)
 			if err := os.Remove(file); err != nil {
 				errMsg := fmt.Sprintf("failed to remove file %s: %v", file, err)
-				dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+				dialog.ShowError(errors.New(errMsg), myWindow)
 				log.Println(errMsg)
 			} else {
 				log.Printf("Successfully removed file: %s", file)
@@ -306,7 +308,7 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		content, err := os.ReadFile(dllsTextFile)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to read dlls.txt file: %v", err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 		} else {
 			lines := strings.Split(string(content), "\n")
@@ -322,7 +324,7 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			updatedContent := strings.Join(filteredLines, "\n")
 			if err := os.WriteFile(dllsTextFile, []byte(updatedContent), 0644); err != nil {
 				errMsg := fmt.Sprintf("failed to update dlls.txt file: %v", err)
-				dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+				dialog.ShowError(errors.New(errMsg), myWindow)
 				log.Println(errMsg)
 			} else {
 				log.Printf("Successfully updated dlls.txt file")
@@ -349,7 +351,7 @@ func UnpatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
 		log.Printf("Removing file: %s", wineloaderCopy)
 		if err := os.Remove(wineloaderCopy); err != nil {
 			errMsg := fmt.Sprintf("failed to remove file %s: %v", wineloaderCopy, err)
-			dialog.ShowError(fmt.Errorf(errMsg), myWindow)
+			dialog.ShowError(errors.New(errMsg), myWindow)
 			log.Println(errMsg)
 			updateAllStatuses()
 			return
