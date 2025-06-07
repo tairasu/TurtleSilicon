@@ -18,10 +18,10 @@ import (
 const appVersion = "1.1.2"
 
 func main() {
-	myApp := app.NewWithID("com.tairasu.turtlesilicon")
-	myWindow := myApp.NewWindow("TurtleSilicon v" + appVersion)
-	myWindow.Resize(fyne.NewSize(650, 500))
-	myWindow.SetFixedSize(true)
+	TSApp := app.NewWithID("com.tairasu.turtlesilicon")
+	TSWindow := TSApp.NewWindow("TurtleSilicon v" + appVersion)
+	TSWindow.Resize(fyne.NewSize(650, 500))
+	TSWindow.SetFixedSize(true)
 
 	// Check for updates
 	go func() {
@@ -47,19 +47,19 @@ func main() {
 					prefs.SuppressedUpdateVersion = latestVersion
 					utils.SavePrefs(prefs)
 				}
-			}, myWindow)
+			}, TSWindow)
 		}
 	}()
 
-	content := ui.CreateUI(myWindow)
-	myWindow.SetContent(content)
+	content := ui.CreateUI(TSWindow)
+	TSWindow.SetContent(content)
 
 	// Set up cleanup when window closes
-	myWindow.SetCloseIntercept(func() {
+	TSWindow.SetCloseIntercept(func() {
 		log.Println("Application closing, cleaning up RosettaX87 service...")
 		service.CleanupService()
-		myApp.Quit()
+		TSApp.Quit()
 	})
 
-	myWindow.ShowAndRun()
+	TSWindow.ShowAndRun()
 }
