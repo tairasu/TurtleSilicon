@@ -38,6 +38,19 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 
 	for resourceName, destPath := range filesToCopy {
 		log.Printf("Processing resource: %s to %s", resourceName, destPath)
+
+		// Check if file already exists and has correct size
+		if utils.PathExists(destPath) && utils.CompareFileWithBundledResource(destPath, resourceName) {
+			log.Printf("File %s already exists with correct size, skipping copy", destPath)
+			continue
+		}
+
+		if utils.PathExists(destPath) {
+			log.Printf("File %s exists but has incorrect size, updating...", destPath)
+		} else {
+			log.Printf("File %s does not exist, creating...", destPath)
+		}
+
 		resource, err := fyne.LoadResourceFromPath(resourceName)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)

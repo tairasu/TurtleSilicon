@@ -138,3 +138,37 @@ func CheckForUpdate(currentVersion string) (latestVersion, releaseNotes string, 
 	latest := strings.TrimPrefix(data.TagName, "v")
 	return latest, data.Body, latest != currentVersion, nil
 }
+
+// GetBundledResourceSize returns the size of a bundled resource
+func GetBundledResourceSize(resourcePath string) (int64, error) {
+	resource, err := fyne.LoadResourceFromPath(resourcePath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to load bundled resource %s: %v", resourcePath, err)
+	}
+	return int64(len(resource.Content())), nil
+}
+
+// CompareFileWithBundledResource compares the size of a file with a bundled resource
+func CompareFileWithBundledResource(filePath, resourcePath string) bool {
+	if !PathExists(filePath) {
+		return false
+	}
+
+	// Get file size
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		log.Printf("Failed to get file info for %s: %v", filePath, err)
+		return false
+	}
+	fileSize := fileInfo.Size()
+
+	// Get bundled resource size
+	resourceSize, err := GetBundledResourceSize(resourcePath)
+	if err != nil {
+		log.Printf("Failed to get bundled resource size for %s: %v", resourcePath, err)
+		return false
+	}
+
+	log.Printf("Comparing file sizes: %s (%d bytes) vs %s (%d bytes)", filePath, fileSize, resourcePath, resourceSize)
+	return fileSize == resourceSize
+}

@@ -92,9 +92,18 @@ func updateTurtleWoWStatus() {
 			}
 		}
 
+		// Check if patched files have the correct size (matches bundled versions)
+		winerosettaDllCorrectSize := utils.CompareFileWithBundledResource(winerosettaDllPath, "winerosetta/winerosetta.dll")
+		d3d9DllCorrectSize := utils.CompareFileWithBundledResource(d3d9DllPath, "winerosetta/d3d9.dll")
+		libSiliconPatchCorrectSize := utils.CompareFileWithBundledResource(libSiliconPatchDllPath, "winerosetta/libSiliconPatch.dll")
+		rosettaX87CorrectSize := utils.CompareFileWithBundledResource(rosettaX87ExePath, "rosettax87/rosettax87")
+		libRuntimeRosettaX87CorrectSize := utils.CompareFileWithBundledResource(libRuntimeRosettaX87Path, "rosettax87/libRuntimeRosettax87")
+
 		if utils.PathExists(winerosettaDllPath) && utils.PathExists(d3d9DllPath) && utils.PathExists(libSiliconPatchDllPath) &&
 			utils.DirExists(rosettaX87DirPath) && utils.PathExists(rosettaX87ExePath) &&
-			utils.PathExists(libRuntimeRosettaX87Path) && dllsFileValid {
+			utils.PathExists(libRuntimeRosettaX87Path) && dllsFileValid &&
+			winerosettaDllCorrectSize && d3d9DllCorrectSize && libSiliconPatchCorrectSize &&
+			rosettaX87CorrectSize && libRuntimeRosettaX87CorrectSize {
 			paths.PatchesAppliedTurtleWoW = true
 		}
 	}
