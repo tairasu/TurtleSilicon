@@ -3,12 +3,12 @@ package launcher
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
 
+	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/paths" // Corrected import path
 	"turtlesilicon/pkg/utils" // Corrected import path
 
@@ -40,7 +40,7 @@ func runGameIntegrated(parentWindow fyne.Window, shellCmd string) error {
 
 	// Parse the shell command to extract components
 	// The shellCmd format is: cd <path> && <envVars> <rosettaExec> <wineloader> <wowExe>
-	log.Printf("Parsing shell command: %s", shellCmd)
+	debug.Printf("Parsing shell command: %s", shellCmd)
 
 	// Create the command without context cancellation
 	cmd := exec.Command("sh", "-c", shellCmd)
@@ -70,7 +70,7 @@ func runGameIntegrated(parentWindow fyne.Window, shellCmd string) error {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
-			log.Printf("GAME STDOUT: %s", line)
+			debug.Printf("GAME STDOUT: %s", line)
 		}
 	}()
 
@@ -78,7 +78,7 @@ func runGameIntegrated(parentWindow fyne.Window, shellCmd string) error {
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			line := scanner.Text()
-			log.Printf("GAME STDERR: %s", line)
+			debug.Printf("GAME STDERR: %s", line)
 		}
 	}()
 
@@ -92,9 +92,9 @@ func runGameIntegrated(parentWindow fyne.Window, shellCmd string) error {
 		}()
 
 		if err := cmd.Wait(); err != nil {
-			log.Printf("Game process ended with error: %v", err)
+			debug.Printf("Game process ended with error: %v", err)
 		} else {
-			log.Println("Game process ended successfully")
+			debug.Println("Game process ended successfully")
 		}
 	}()
 
@@ -102,7 +102,7 @@ func runGameIntegrated(parentWindow fyne.Window, shellCmd string) error {
 }
 
 func LaunchGame(myWindow fyne.Window) {
-	log.Println("Launch Game button clicked")
+	debug.Println("Launch Game button clicked")
 
 	if paths.CrossoverPath == "" {
 		dialog.ShowError(fmt.Errorf("CrossOver path not set. Please set it in the patcher."), myWindow)
@@ -131,7 +131,7 @@ func LaunchGame(myWindow fyne.Window) {
 	}
 	gameMutex.Unlock()
 
-	log.Println("Preparing to launch TurtleSilicon...")
+	debug.Println("Preparing to launch TurtleSilicon...")
 
 	// Determine which WoW executable to use based on vanilla-tweaks preference
 	var wowExePath string
@@ -178,7 +178,7 @@ func continueLaunch(myWindow fyne.Window, wowExePath string) {
 	}
 
 	// Since RosettaX87 service is already running, we can directly launch WoW
-	log.Println("RosettaX87 service is running. Proceeding to launch WoW.")
+	debug.Println("RosettaX87 service is running. Proceeding to launch WoW.")
 
 	if paths.CrossoverPath == "" || paths.TurtlewowPath == "" {
 		dialog.ShowError(fmt.Errorf("CrossOver path or TurtleWoW path is not set. Cannot launch WoW."), myWindow)
@@ -211,21 +211,21 @@ func continueLaunch(myWindow fyne.Window, wowExePath string) {
 		escapedShellCmd := utils.EscapeStringForAppleScript(shellCmd)
 		cmd2Script := fmt.Sprintf("tell application \"Terminal\" to do script \"%s\"", escapedShellCmd)
 
-		log.Println("Executing WoW launch command via AppleScript...")
+		debug.Println("Executing WoW launch command via AppleScript...")
 		if !utils.RunOsascript(cmd2Script, myWindow) {
 			return
 		}
 
-		log.Println("Launch command executed. Check the new terminal window.")
+		debug.Println("Launch command executed. Check the new terminal window.")
 	} else {
 		// Use integrated terminal
-		log.Printf("Shell command for integrated terminal: %s", shellCmd)
-		log.Println("Executing WoW launch command with integrated terminal...")
+		debug.Printf("Shell command for integrated terminal: %s", shellCmd)
+		debug.Println("Executing WoW launch command with integrated terminal...")
 		if err := runGameIntegrated(myWindow, shellCmd); err != nil {
 			dialog.ShowError(fmt.Errorf("failed to launch game: %v", err), myWindow)
 			return
 		}
-		log.Println("Game launched with integrated terminal. Check the application logs for output.")
+		debug.Println("Game launched with integrated terminal. Check the application logs for output.")
 	}
 }
 

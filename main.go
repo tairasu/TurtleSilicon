@@ -1,11 +1,11 @@
 package main
 
 import (
+	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/service"
 	"turtlesilicon/pkg/ui"
 	"turtlesilicon/pkg/utils"
 
-	"log"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -15,7 +15,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.1.2"
+const appVersion = "1.2.0"
 
 func main() {
 	TSApp := app.NewWithID("com.tairasu.turtlesilicon")
@@ -27,9 +27,9 @@ func main() {
 	go func() {
 		prefs, _ := utils.LoadPrefs()
 		latest, notes, update, err := utils.CheckForUpdate(appVersion)
-		log.Printf("DEBUG RAW: latest=%q", latest)
+		debug.Printf("DEBUG RAW: latest=%q", latest)
 		latestVersion := strings.TrimLeft(latest, "v.")
-		log.Printf("DEBUG: appVersion=%q, latest=%q, latestVersion=%q, suppressed=%q, update=%v, err=%v\n",
+		debug.Printf("DEBUG: appVersion=%q, latest=%q, latestVersion=%q, suppressed=%q, update=%v, err=%v\n",
 			appVersion, latest, latestVersion, prefs.SuppressedUpdateVersion, update, err)
 		// Always skip popup if versions match
 		if latestVersion == appVersion {
@@ -56,7 +56,7 @@ func main() {
 
 	// Set up cleanup when window closes
 	TSWindow.SetCloseIntercept(func() {
-		log.Println("Application closing, cleaning up RosettaX87 service...")
+		debug.Println("Application closing, cleaning up RosettaX87 service...")
 		service.CleanupService()
 		TSApp.Quit()
 	})

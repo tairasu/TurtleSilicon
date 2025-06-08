@@ -1,11 +1,11 @@
 package ui
 
 import (
-	"log"
 	"net/url"
 	"strings"
 	"time"
 
+	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/launcher"
 	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/service"
@@ -23,7 +23,7 @@ func createOptionsComponents() {
 
 	metalHudCheckbox = widget.NewCheck("Enable Metal Hud (show FPS)", func(checked bool) {
 		launcher.EnableMetalHud = checked
-		log.Printf("Metal HUD enabled: %v", launcher.EnableMetalHud)
+		debug.Printf("Metal HUD enabled: %v", launcher.EnableMetalHud)
 	})
 	metalHudCheckbox.SetChecked(launcher.EnableMetalHud)
 
@@ -32,7 +32,7 @@ func createOptionsComponents() {
 		prefs, _ := utils.LoadPrefs()
 		prefs.ShowTerminalNormally = checked
 		utils.SavePrefs(prefs)
-		log.Printf("Show terminal normally: %v", checked)
+		debug.Printf("Show terminal normally: %v", checked)
 	})
 	showTerminalCheckbox.SetChecked(prefs.ShowTerminalNormally)
 
@@ -42,7 +42,7 @@ func createOptionsComponents() {
 		prefs, _ := utils.LoadPrefs()
 		prefs.EnableVanillaTweaks = checked
 		utils.SavePrefs(prefs)
-		log.Printf("Vanilla-tweaks enabled: %v", launcher.EnableVanillaTweaks)
+		debug.Printf("Vanilla-tweaks enabled: %v", launcher.EnableVanillaTweaks)
 	})
 	vanillaTweaksCheckbox.SetChecked(prefs.EnableVanillaTweaks)
 	launcher.EnableVanillaTweaks = prefs.EnableVanillaTweaks
@@ -64,7 +64,7 @@ func createOptionsComponents() {
 		prefs, _ := utils.LoadPrefs()
 		prefs.EnvironmentVariables = text
 		utils.SavePrefs(prefs)
-		log.Printf("Environment variables updated: %v", launcher.CustomEnvVars)
+		debug.Printf("Environment variables updated: %v", launcher.CustomEnvVars)
 	}
 }
 
@@ -116,7 +116,7 @@ func createBottomBar(myWindow fyne.Window) fyne.CanvasObject {
 		githubURL := "https://github.com/tairasu/TurtleSilicon"
 		parsedURL, err := url.Parse(githubURL)
 		if err != nil {
-			log.Printf("Error parsing GitHub URL: %v", err)
+			debug.Printf("Error parsing GitHub URL: %v", err)
 			return
 		}
 		fyne.CurrentApp().OpenURL(parsedURL)
@@ -183,7 +183,7 @@ func createWineRegistryComponents() {
 		// Run in goroutine to avoid blocking UI
 		go func() {
 			if err := utils.SetOptionAsAltEnabled(true); err != nil {
-				log.Printf("Failed to enable Option-as-Alt mapping: %v", err)
+				debug.Printf("Failed to enable Option-as-Alt mapping: %v", err)
 				// Update UI on main thread
 				fyne.Do(func() {
 					stopPulsingEffect()
@@ -191,7 +191,7 @@ func createWineRegistryComponents() {
 				})
 				time.Sleep(2 * time.Second) // Show error briefly
 			} else {
-				log.Printf("Successfully enabled Option-as-Alt mapping")
+				debug.Printf("Successfully enabled Option-as-Alt mapping")
 				// Update preferences
 				prefs, _ := utils.LoadPrefs()
 				prefs.RemapOptionAsAlt = true
@@ -220,7 +220,7 @@ func createWineRegistryComponents() {
 		// Run in goroutine to avoid blocking UI
 		go func() {
 			if err := utils.SetOptionAsAltEnabled(false); err != nil {
-				log.Printf("Failed to disable Option-as-Alt mapping: %v", err)
+				debug.Printf("Failed to disable Option-as-Alt mapping: %v", err)
 				// Update UI on main thread
 				fyne.Do(func() {
 					stopPulsingEffect()
@@ -228,7 +228,7 @@ func createWineRegistryComponents() {
 				})
 				time.Sleep(2 * time.Second) // Show error briefly
 			} else {
-				log.Printf("Successfully disabled Option-as-Alt mapping")
+				debug.Printf("Successfully disabled Option-as-Alt mapping")
 				// Update preferences
 				prefs, _ := utils.LoadPrefs()
 				prefs.RemapOptionAsAlt = false

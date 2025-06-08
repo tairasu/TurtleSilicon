@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"turtlesilicon/pkg/debug"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
@@ -95,16 +96,16 @@ func CopyDir(src string, dst string) error {
 
 // RunOsascript runs an AppleScript command using osascript.
 func RunOsascript(scriptString string, myWindow fyne.Window) bool {
-	log.Printf("Executing AppleScript: %s", scriptString)
+	debug.Printf("Executing AppleScript: %s", scriptString)
 	cmd := exec.Command("osascript", "-e", scriptString)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		errMsg := fmt.Sprintf("AppleScript failed: %v\nOutput: %s", err, string(output))
 		dialog.ShowError(errors.New(errMsg), myWindow)
-		log.Println(errMsg)
+		debug.Println(errMsg)
 		return false
 	}
-	log.Printf("osascript output: %s", string(output))
+	debug.Printf("osascript output: %s", string(output))
 	return true
 }
 
@@ -157,7 +158,7 @@ func CompareFileWithBundledResource(filePath, resourcePath string) bool {
 	// Get file size
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
-		log.Printf("Failed to get file info for %s: %v", filePath, err)
+		debug.Printf("Failed to get file info for %s: %v", filePath, err)
 		return false
 	}
 	fileSize := fileInfo.Size()
@@ -165,10 +166,10 @@ func CompareFileWithBundledResource(filePath, resourcePath string) bool {
 	// Get bundled resource size
 	resourceSize, err := GetBundledResourceSize(resourcePath)
 	if err != nil {
-		log.Printf("Failed to get bundled resource size for %s: %v", resourcePath, err)
+		debug.Printf("Failed to get bundled resource size for %s: %v", resourcePath, err)
 		return false
 	}
 
-	log.Printf("Comparing file sizes: %s (%d bytes) vs %s (%d bytes)", filePath, fileSize, resourcePath, resourceSize)
+	debug.Printf("Comparing file sizes: %s (%d bytes) vs %s (%d bytes)", filePath, fileSize, resourcePath, resourceSize)
 	return fileSize == resourceSize
 }

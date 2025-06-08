@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/paths" // Corrected import path
 	"turtlesilicon/pkg/utils" // Corrected import path
 
@@ -19,7 +19,7 @@ import (
 )
 
 func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
-	log.Println("Patch TurtleWoW clicked")
+	debug.Println("Patch TurtleWoW clicked")
 	if paths.TurtlewowPath == "" {
 		dialog.ShowError(fmt.Errorf("TurtleWoW path not set. Please set it first."), myWindow)
 		return
@@ -37,25 +37,25 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 	}
 
 	for resourceName, destPath := range filesToCopy {
-		log.Printf("Processing resource: %s to %s", resourceName, destPath)
+		debug.Printf("Processing resource: %s to %s", resourceName, destPath)
 
 		// Check if file already exists and has correct size
 		if utils.PathExists(destPath) && utils.CompareFileWithBundledResource(destPath, resourceName) {
-			log.Printf("File %s already exists with correct size, skipping copy", destPath)
+			debug.Printf("File %s already exists with correct size, skipping copy", destPath)
 			continue
 		}
 
 		if utils.PathExists(destPath) {
-			log.Printf("File %s exists but has incorrect size, updating...", destPath)
+			debug.Printf("File %s exists but has incorrect size, updating...", destPath)
 		} else {
-			log.Printf("File %s does not exist, creating...", destPath)
+			debug.Printf("File %s does not exist, creating...", destPath)
 		}
 
 		resource, err := fyne.LoadResourceFromPath(resourceName)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
 			return
@@ -65,7 +65,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to create destination file %s: %v", destPath, err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
 			return
@@ -76,22 +76,22 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to copy bundled resource %s to %s: %v", resourceName, destPath, err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
 			return
 		}
-		log.Printf("Successfully copied %s to %s", resourceName, destPath)
+		debug.Printf("Successfully copied %s to %s", resourceName, destPath)
 	}
 
-	log.Printf("Preparing rosettax87 directory at: %s", targetRosettaX87Dir)
+	debug.Printf("Preparing rosettax87 directory at: %s", targetRosettaX87Dir)
 	if err := os.RemoveAll(targetRosettaX87Dir); err != nil {
-		log.Printf("Warning: could not remove existing rosettax87 folder '%s': %v", targetRosettaX87Dir, err)
+		debug.Printf("Warning: could not remove existing rosettax87 folder '%s': %v", targetRosettaX87Dir, err)
 	}
 	if err := os.MkdirAll(targetRosettaX87Dir, 0755); err != nil {
 		errMsg := fmt.Sprintf("failed to create directory %s: %v", targetRosettaX87Dir, err)
 		dialog.ShowError(errors.New(errMsg), myWindow)
-		log.Println(errMsg)
+		debug.Println(errMsg)
 		paths.PatchesAppliedTurtleWoW = false
 		updateAllStatuses()
 		return
@@ -103,12 +103,12 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 	}
 
 	for resourceName, destPath := range rosettaFilesToCopy {
-		log.Printf("Processing rosetta resource: %s to %s", resourceName, destPath)
+		debug.Printf("Processing rosetta resource: %s to %s", resourceName, destPath)
 		resource, err := fyne.LoadResourceFromPath(resourceName)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
 			return
@@ -118,7 +118,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to create destination file %s: %v", destPath, err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
 			return
@@ -129,7 +129,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			destinationFile.Close()
 			errMsg := fmt.Sprintf("failed to copy bundled resource %s to %s: %v", resourceName, destPath, err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 			paths.PatchesAppliedTurtleWoW = false
 			updateAllStatuses()
 			return
@@ -137,20 +137,20 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		destinationFile.Close()
 
 		if filepath.Base(destPath) == "rosettax87" {
-			log.Printf("Setting execute permission for %s", destPath)
+			debug.Printf("Setting execute permission for %s", destPath)
 			if err := os.Chmod(destPath, 0755); err != nil {
 				errMsg := fmt.Sprintf("failed to set execute permission for %s: %v", destPath, err)
 				dialog.ShowError(errors.New(errMsg), myWindow)
-				log.Println(errMsg)
+				debug.Println(errMsg)
 				paths.PatchesAppliedTurtleWoW = false
 				updateAllStatuses()
 				return
 			}
 		}
-		log.Printf("Successfully copied %s to %s", resourceName, destPath)
+		debug.Printf("Successfully copied %s to %s", resourceName, destPath)
 	}
 
-	log.Printf("Checking dlls.txt file at: %s", dllsTextFile)
+	debug.Printf("Checking dlls.txt file at: %s", dllsTextFile)
 	winerosettaEntry := "winerosetta.dll"
 	libSiliconPatchEntry := "libSiliconPatch.dll"
 	needsWinerosettaUpdate := true
@@ -159,15 +159,15 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 	if fileContentBytes, err := os.ReadFile(dllsTextFile); err == nil {
 		fileContent := string(fileContentBytes)
 		if strings.Contains(fileContent, winerosettaEntry) {
-			log.Printf("dlls.txt already contains %s", winerosettaEntry)
+			debug.Printf("dlls.txt already contains %s", winerosettaEntry)
 			needsWinerosettaUpdate = false
 		}
 		if strings.Contains(fileContent, libSiliconPatchEntry) {
-			log.Printf("dlls.txt already contains %s", libSiliconPatchEntry)
+			debug.Printf("dlls.txt already contains %s", libSiliconPatchEntry)
 			needsLibSiliconPatchUpdate = false
 		}
 	} else {
-		log.Printf("dlls.txt not found, will create a new one with both entries")
+		debug.Printf("dlls.txt not found, will create a new one with both entries")
 	}
 
 	if needsWinerosettaUpdate || needsLibSiliconPatchUpdate {
@@ -178,7 +178,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			if err != nil {
 				errMsg := fmt.Sprintf("failed to read dlls.txt for update: %v", err)
 				dialog.ShowError(errors.New(errMsg), myWindow)
-				log.Println(errMsg)
+				debug.Println(errMsg)
 			}
 		}
 
@@ -192,32 +192,32 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		if needsWinerosettaUpdate {
 			if !strings.Contains(updatedContent, winerosettaEntry+"\n") {
 				updatedContent += winerosettaEntry + "\n"
-				log.Printf("Adding %s to dlls.txt", winerosettaEntry)
+				debug.Printf("Adding %s to dlls.txt", winerosettaEntry)
 			}
 		}
 		if needsLibSiliconPatchUpdate {
 			if !strings.Contains(updatedContent, libSiliconPatchEntry+"\n") {
 				updatedContent += libSiliconPatchEntry + "\n"
-				log.Printf("Adding %s to dlls.txt", libSiliconPatchEntry)
+				debug.Printf("Adding %s to dlls.txt", libSiliconPatchEntry)
 			}
 		}
 
 		if err := os.WriteFile(dllsTextFile, []byte(updatedContent), 0644); err != nil {
 			errMsg := fmt.Sprintf("failed to update dlls.txt: %v", err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 		} else {
-			log.Printf("Successfully updated dlls.txt")
+			debug.Printf("Successfully updated dlls.txt")
 		}
 	}
 
-	log.Println("TurtleWoW patching with bundled resources completed successfully.")
+	debug.Println("TurtleWoW patching with bundled resources completed successfully.")
 	dialog.ShowInformation("Success", "TurtleWoW patching process completed using bundled resources.", myWindow)
 	updateAllStatuses()
 }
 
 func PatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
-	log.Println("Patch CrossOver clicked")
+	debug.Println("Patch CrossOver clicked")
 	if paths.CrossoverPath == "" {
 		dialog.ShowError(fmt.Errorf("CrossOver path not set. Please set it first."), myWindow)
 		return
@@ -234,7 +234,7 @@ func PatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
 		return
 	}
 
-	log.Printf("Copying %s to %s", wineloaderOrig, wineloaderCopy)
+	debug.Printf("Copying %s to %s", wineloaderOrig, wineloaderCopy)
 	if err := utils.CopyFile(wineloaderOrig, wineloaderCopy); err != nil {
 		dialog.ShowError(fmt.Errorf("failed to copy wineloader: %w", err), myWindow)
 		paths.PatchesAppliedCrossOver = false
@@ -242,40 +242,40 @@ func PatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
 		return
 	}
 
-	log.Printf("Executing: codesign --remove-signature %s", wineloaderCopy)
+	debug.Printf("Executing: codesign --remove-signature %s", wineloaderCopy)
 	cmd := exec.Command("codesign", "--remove-signature", wineloaderCopy)
 	combinedOutput, err := cmd.CombinedOutput()
 	if err != nil {
 		derrMsg := fmt.Sprintf("failed to remove signature from %s: %v\nOutput: %s", wineloaderCopy, err, string(combinedOutput))
 		dialog.ShowError(errors.New(derrMsg), myWindow)
-		log.Println(derrMsg)
+		debug.Println(derrMsg)
 		paths.PatchesAppliedCrossOver = false
 		if err := os.Remove(wineloaderCopy); err != nil {
-			log.Printf("Warning: failed to cleanup wineloader2 after codesign failure: %v", err)
+			debug.Printf("Warning: failed to cleanup wineloader2 after codesign failure: %v", err)
 		}
 		updateAllStatuses()
 		return
 	}
-	log.Printf("codesign output: %s", string(combinedOutput))
+	debug.Printf("codesign output: %s", string(combinedOutput))
 
-	log.Printf("Setting execute permissions for %s", wineloaderCopy)
+	debug.Printf("Setting execute permissions for %s", wineloaderCopy)
 	if err := os.Chmod(wineloaderCopy, 0755); err != nil {
 		errMsg := fmt.Sprintf("failed to set executable permissions for %s: %v", wineloaderCopy, err)
 		dialog.ShowError(errors.New(errMsg), myWindow)
-		log.Println(errMsg)
+		debug.Println(errMsg)
 		paths.PatchesAppliedCrossOver = false
 		updateAllStatuses()
 		return
 	}
 
-	log.Println("CrossOver patching completed successfully.")
+	debug.Println("CrossOver patching completed successfully.")
 	paths.PatchesAppliedCrossOver = true
 	dialog.ShowInformation("Success", "CrossOver patching process completed.", myWindow)
 	updateAllStatuses()
 }
 
 func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
-	log.Println("Unpatch TurtleWoW clicked")
+	debug.Println("Unpatch TurtleWoW clicked")
 	if paths.TurtlewowPath == "" {
 		dialog.ShowError(fmt.Errorf("TurtleWoW path not set. Please set it first."), myWindow)
 		return
@@ -290,13 +290,13 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 
 	// Remove the rosettaX87 directory
 	if utils.DirExists(rosettaX87DirPath) {
-		log.Printf("Removing directory: %s", rosettaX87DirPath)
+		debug.Printf("Removing directory: %s", rosettaX87DirPath)
 		if err := os.RemoveAll(rosettaX87DirPath); err != nil {
 			errMsg := fmt.Sprintf("failed to remove directory %s: %v", rosettaX87DirPath, err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 		} else {
-			log.Printf("Successfully removed directory: %s", rosettaX87DirPath)
+			debug.Printf("Successfully removed directory: %s", rosettaX87DirPath)
 		}
 	}
 
@@ -304,25 +304,25 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 	filesToRemove := []string{winerosettaDllPath, d3d9DllPath, libSiliconPatchDllPath}
 	for _, file := range filesToRemove {
 		if utils.PathExists(file) {
-			log.Printf("Removing file: %s", file)
+			debug.Printf("Removing file: %s", file)
 			if err := os.Remove(file); err != nil {
 				errMsg := fmt.Sprintf("failed to remove file %s: %v", file, err)
 				dialog.ShowError(errors.New(errMsg), myWindow)
-				log.Println(errMsg)
+				debug.Println(errMsg)
 			} else {
-				log.Printf("Successfully removed file: %s", file)
+				debug.Printf("Successfully removed file: %s", file)
 			}
 		}
 	}
 
 	// Update dlls.txt file - remove winerosetta.dll and libSiliconPatch.dll entries
 	if utils.PathExists(dllsTextFile) {
-		log.Printf("Updating dlls.txt file: %s", dllsTextFile)
+		debug.Printf("Updating dlls.txt file: %s", dllsTextFile)
 		content, err := os.ReadFile(dllsTextFile)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to read dlls.txt file: %v", err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 		} else {
 			lines := strings.Split(string(content), "\n")
 			filteredLines := make([]string, 0, len(lines))
@@ -338,21 +338,21 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			if err := os.WriteFile(dllsTextFile, []byte(updatedContent), 0644); err != nil {
 				errMsg := fmt.Sprintf("failed to update dlls.txt file: %v", err)
 				dialog.ShowError(errors.New(errMsg), myWindow)
-				log.Println(errMsg)
+				debug.Println(errMsg)
 			} else {
-				log.Printf("Successfully updated dlls.txt file")
+				debug.Printf("Successfully updated dlls.txt file")
 			}
 		}
 	}
 
-	log.Println("TurtleWoW unpatching completed successfully.")
+	debug.Println("TurtleWoW unpatching completed successfully.")
 	paths.PatchesAppliedTurtleWoW = false
 	dialog.ShowInformation("Success", "TurtleWoW unpatching process completed.", myWindow)
 	updateAllStatuses()
 }
 
 func UnpatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
-	log.Println("Unpatch CrossOver clicked")
+	debug.Println("Unpatch CrossOver clicked")
 	if paths.CrossoverPath == "" {
 		dialog.ShowError(fmt.Errorf("CrossOver path not set. Please set it first."), myWindow)
 		return
@@ -361,21 +361,21 @@ func UnpatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
 	wineloaderCopy := filepath.Join(paths.CrossoverPath, "Contents", "SharedSupport", "CrossOver", "CrossOver-Hosted Application", "wineloader2")
 
 	if utils.PathExists(wineloaderCopy) {
-		log.Printf("Removing file: %s", wineloaderCopy)
+		debug.Printf("Removing file: %s", wineloaderCopy)
 		if err := os.Remove(wineloaderCopy); err != nil {
 			errMsg := fmt.Sprintf("failed to remove file %s: %v", wineloaderCopy, err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
-			log.Println(errMsg)
+			debug.Println(errMsg)
 			updateAllStatuses()
 			return
 		} else {
-			log.Printf("Successfully removed file: %s", wineloaderCopy)
+			debug.Printf("Successfully removed file: %s", wineloaderCopy)
 		}
 	} else {
-		log.Printf("File not found to remove: %s", wineloaderCopy)
+		debug.Printf("File not found to remove: %s", wineloaderCopy)
 	}
 
-	log.Println("CrossOver unpatching completed successfully.")
+	debug.Println("CrossOver unpatching completed successfully.")
 	paths.PatchesAppliedCrossOver = false
 	dialog.ShowInformation("Success", "CrossOver unpatching process completed.", myWindow)
 	updateAllStatuses()

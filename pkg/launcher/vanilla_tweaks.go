@@ -2,11 +2,11 @@ package launcher
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 
+	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/paths"
 	"turtlesilicon/pkg/utils"
 
@@ -55,7 +55,7 @@ func ApplyVanillaTweaks(myWindow fyne.Window) error {
 	tempVanillaTweaksPath := filepath.Join(paths.TurtlewowPath, "vanilla-tweaks.exe")
 
 	// Copy vanilla-tweaks.exe to TurtleWoW directory
-	log.Printf("Copying vanilla-tweaks.exe from %s to %s", vanillaTweaksPath, tempVanillaTweaksPath)
+	debug.Printf("Copying vanilla-tweaks.exe from %s to %s", vanillaTweaksPath, tempVanillaTweaksPath)
 	sourceFile, err := os.Open(vanillaTweaksPath)
 	if err != nil {
 		return fmt.Errorf("failed to open vanilla-tweaks.exe: %v", err)
@@ -75,7 +75,7 @@ func ApplyVanillaTweaks(myWindow fyne.Window) error {
 
 	// Ensure the copied file is executable
 	if err := os.Chmod(tempVanillaTweaksPath, 0755); err != nil {
-		log.Printf("Warning: failed to set executable permission on vanilla-tweaks.exe: %v", err)
+		debug.Printf("Warning: failed to set executable permission on vanilla-tweaks.exe: %v", err)
 	}
 
 	// Build the command to apply vanilla-tweaks using the correct format:
@@ -84,17 +84,17 @@ func ApplyVanillaTweaks(myWindow fyne.Window) error {
 		utils.QuotePathForShell(paths.TurtlewowPath),
 		utils.QuotePathForShell(wineloader2Path))
 
-	log.Printf("Applying vanilla-tweaks with command: %s", shellCmd)
+	debug.Printf("Applying vanilla-tweaks with command: %s", shellCmd)
 
 	// Execute the command
 	cmd := exec.Command("sh", "-c", shellCmd)
 	output, err := cmd.CombinedOutput()
 
-	log.Printf("vanilla-tweaks command output: %s", string(output))
+	debug.Printf("vanilla-tweaks command output: %s", string(output))
 
 	// Clean up the temporary vanilla-tweaks.exe file
 	if cleanupErr := os.Remove(tempVanillaTweaksPath); cleanupErr != nil {
-		log.Printf("Warning: failed to clean up temporary vanilla-tweaks.exe: %v", cleanupErr)
+		debug.Printf("Warning: failed to clean up temporary vanilla-tweaks.exe: %v", cleanupErr)
 	}
 
 	// Always check if the output file was created, regardless of exit code
@@ -103,7 +103,7 @@ func ApplyVanillaTweaks(myWindow fyne.Window) error {
 	if foundPath == "" {
 		// Only report error if no output file was created
 		if err != nil {
-			log.Printf("vanilla-tweaks command failed: %v", err)
+			debug.Printf("vanilla-tweaks command failed: %v", err)
 			return fmt.Errorf("failed to apply vanilla-tweaks: %v\nOutput: %s", err, string(output))
 		} else {
 			return fmt.Errorf("vanilla-tweaks completed but WoW-tweaked.exe was not created\nOutput: %s", string(output))
@@ -112,10 +112,10 @@ func ApplyVanillaTweaks(myWindow fyne.Window) error {
 
 	// If we found the file but there was an error code, log it as a warning
 	if err != nil {
-		log.Printf("vanilla-tweaks reported error but output file was created: %v", err)
+		debug.Printf("vanilla-tweaks reported error but output file was created: %v", err)
 	}
 
-	log.Println("vanilla-tweaks applied successfully")
+	debug.Println("vanilla-tweaks applied successfully")
 	return nil
 }
 

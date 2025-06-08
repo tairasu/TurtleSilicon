@@ -1,8 +1,7 @@
 package ui
 
 import (
-	"log"
-
+	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/paths"
 
 	"fyne.io/fyne/v2"
@@ -35,7 +34,7 @@ func createLogoContainer() fyne.CanvasObject {
 	// Load the application logo
 	logoResource, err := fyne.LoadResourceFromPath("Icon.png")
 	if err != nil {
-		log.Printf("Warning: could not load logo: %v", err)
+		debug.Printf("Warning: could not load logo: %v", err)
 	}
 
 	// Create the logo image with a smaller fixed size since we have a header now
