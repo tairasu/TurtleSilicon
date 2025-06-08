@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
 )
@@ -30,9 +32,20 @@ var (
 	showTerminalCheckbox  *widget.Check
 	vanillaTweaksCheckbox *widget.Check
 
+	// Wine registry buttons and status
+	enableOptionAsAltButton  *widget.Button
+	disableOptionAsAltButton *widget.Button
+	optionAsAltStatusLabel   *widget.RichText
+
 	// Environment variables entry
 	envVarsEntry *widget.Entry
 
 	// Window reference for popup functionality
 	currentWindow fyne.Window
+
+	// State variables
+	currentWineRegistryEnabled bool
+
+	// Pulsing effect variables (pulsingActive is in status.go)
+	pulsingTicker *time.Ticker
 )

@@ -25,6 +25,11 @@ func UpdateAllStatuses() {
 	updateTurtleWoWStatus()
 	updatePlayButtonState()
 	updateServiceStatus()
+
+	// Update Wine registry status if components are initialized
+	if optionAsAltStatusLabel != nil {
+		updateWineRegistryStatus()
+	}
 }
 
 // updateCrossoverStatus updates CrossOver path and patch status

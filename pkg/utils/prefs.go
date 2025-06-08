@@ -14,6 +14,7 @@ type UserPrefs struct {
 	SaveSudoPassword        bool   `json:"save_sudo_password"`
 	ShowTerminalNormally    bool   `json:"show_terminal_normally"`
 	EnableVanillaTweaks     bool   `json:"enable_vanilla_tweaks"`
+	RemapOptionAsAlt        bool   `json:"remap_option_as_alt"`
 }
 
 func getPrefsPath() (string, error) {

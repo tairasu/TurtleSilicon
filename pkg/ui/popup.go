@@ -21,6 +21,8 @@ func showOptionsPopup() {
 		metalHudCheckbox,
 		showTerminalCheckbox,
 		vanillaTweaksCheckbox,
+		widget.NewSeparator(),
+		container.NewBorder(nil, nil, nil, container.NewHBox(enableOptionAsAltButton, disableOptionAsAltButton), optionAsAltStatusLabel),
 	)
 
 	envVarsTitle := widget.NewLabel("Environment Variables")
@@ -55,8 +57,8 @@ func showOptionsPopup() {
 
 	// Get the window size and calculate 2/3 size
 	windowSize := currentWindow.Content().Size()
-	popupWidth := windowSize.Width * 2 / 3
-	popupHeight := windowSize.Height * 2 / 3
+	popupWidth := windowSize.Width * 5 / 6
+	popupHeight := windowSize.Height * 5 / 6
 
 	// Create a modal popup
 	popup := widget.NewModalPopUp(popupContent, currentWindow.Canvas())
