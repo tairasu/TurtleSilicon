@@ -45,6 +45,7 @@ var (
 
 	// State variables
 	currentWineRegistryEnabled bool
+	remapOperationInProgress   bool
 
 	// Pulsing effect variables (pulsingActive is in status.go)
 	pulsingTicker *time.Ticker

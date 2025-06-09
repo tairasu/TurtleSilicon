@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	wineRegistrySection = "[Software\\Wine\\Mac Driver]"
+	wineRegistrySection = "[Software\\\\Wine\\\\Mac Driver]"
 	leftOptionKey       = "\"LeftOptionIsAlt\"=\"Y\""
 	rightOptionKey      = "\"RightOptionIsAlt\"=\"Y\""
 	wineLoaderPath      = "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/CrossOver-Hosted Application/wineloader2"

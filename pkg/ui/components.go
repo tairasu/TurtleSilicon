@@ -173,6 +173,7 @@ func createWineRegistryComponents() {
 	enableOptionAsAltButton = widget.NewButton("Enable", func() {
 		enableOptionAsAltButton.Disable()
 		disableOptionAsAltButton.Disable()
+		remapOperationInProgress = true
 
 		// Show loading state in status label
 		fyne.Do(func() {
@@ -182,6 +183,10 @@ func createWineRegistryComponents() {
 
 		// Run in goroutine to avoid blocking UI
 		go func() {
+			defer func() {
+				remapOperationInProgress = false
+			}()
+
 			if err := utils.SetOptionAsAltEnabled(true); err != nil {
 				debug.Printf("Failed to enable Option-as-Alt mapping: %v", err)
 				// Update UI on main thread
@@ -210,6 +215,7 @@ func createWineRegistryComponents() {
 	disableOptionAsAltButton = widget.NewButton("Disable", func() {
 		enableOptionAsAltButton.Disable()
 		disableOptionAsAltButton.Disable()
+		remapOperationInProgress = true
 
 		// Show loading state in status label
 		fyne.Do(func() {
@@ -219,6 +225,10 @@ func createWineRegistryComponents() {
 
 		// Run in goroutine to avoid blocking UI
 		go func() {
+			defer func() {
+				remapOperationInProgress = false
+			}()
+
 			if err := utils.SetOptionAsAltEnabled(false); err != nil {
 				debug.Printf("Failed to disable Option-as-Alt mapping: %v", err)
 				// Update UI on main thread
@@ -298,33 +308,31 @@ func startPulsingEffect() {
 		dots := ""
 
 		for pulsingActive {
-			select {
-			case <-pulsingTicker.C:
-				if pulsingActive {
-					// Cycle through different dot patterns for visual effect
-					switch len(dots) {
-					case 0:
-						dots = "."
-					case 1:
-						dots = ".."
-					case 2:
-						dots = "..."
-					default:
-						dots = ""
-					}
-
-					// Update the label with pulsing dots
-					fyne.Do(func() {
-						if pulsingActive && optionAsAltStatusLabel != nil {
-							// Use the dots directly in the status text
-							if strings.Contains(optionAsAltStatusLabel.String(), "Enabling") {
-								optionAsAltStatusLabel.ParseMarkdown("**Remap Option key as Alt key:** Enabling" + dots)
-							} else if strings.Contains(optionAsAltStatusLabel.String(), "Disabling") {
-								optionAsAltStatusLabel.ParseMarkdown("**Remap Option key as Alt key:** Disabling" + dots)
-							}
-						}
-					})
+			<-pulsingTicker.C
+			if pulsingActive {
+				// Cycle through different dot patterns for visual effect
+				switch len(dots) {
+				case 0:
+					dots = "."
+				case 1:
+					dots = ".."
+				case 2:
+					dots = "..."
+				default:
+					dots = ""
 				}
+
+				// Update the label with pulsing dots
+				fyne.Do(func() {
+					if pulsingActive && optionAsAltStatusLabel != nil {
+						// Use the dots directly in the status text
+						if strings.Contains(optionAsAltStatusLabel.String(), "Enabling") {
+							optionAsAltStatusLabel.ParseMarkdown("**Remap Option key as Alt key:** Enabling" + dots)
+						} else if strings.Contains(optionAsAltStatusLabel.String(), "Disabling") {
+							optionAsAltStatusLabel.ParseMarkdown("**Remap Option key as Alt key:** Disabling" + dots)
+						}
+					}
+				})
 			}
 		}
 	}()

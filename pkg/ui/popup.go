@@ -66,8 +66,55 @@ func showOptionsPopup() {
 
 	// Set the close button action to hide the popup
 	closeButton.OnTapped = func() {
-		popup.Hide()
+		if remapOperationInProgress {
+			// Show warning popup instead of closing
+			showRemapWarningPopup()
+		} else {
+			popup.Hide()
+		}
 	}
 
 	popup.Show()
+}
+
+// showRemapWarningPopup shows a warning popup when user tries to close options during remap operation
+func showRemapWarningPopup() {
+	if currentWindow == nil {
+		return
+	}
+
+	// Create warning content
+	warningTitle := widget.NewRichTextFromMarkdown("# ⚠️ Please Wait")
+	warningMessage := widget.NewRichTextFromMarkdown("**Remap operation is in progress.**\n\nThe wine registry is being modified. This will take a moment.\n\nPlease wait for the operation to complete before closing the options.")
+
+	// Create OK button
+	okButton := widget.NewButton("OK", func() {
+		// This will be set when the popup is created
+	})
+	okButton.Importance = widget.HighImportance
+
+	// Create warning content container
+	warningContent := container.NewVBox(
+		container.NewCenter(warningTitle),
+		widget.NewSeparator(),
+		warningMessage,
+		widget.NewSeparator(),
+		container.NewCenter(okButton),
+	)
+
+	// Calculate smaller popup size
+	windowSize := currentWindow.Content().Size()
+	popupWidth := windowSize.Width * 2 / 3
+	popupHeight := windowSize.Height / 2
+
+	// Create the warning popup
+	warningPopup := widget.NewModalPopUp(container.NewPadded(warningContent), currentWindow.Canvas())
+	warningPopup.Resize(fyne.NewSize(popupWidth, popupHeight))
+
+	// Set the OK button action to hide the warning popup
+	okButton.OnTapped = func() {
+		warningPopup.Hide()
+	}
+
+	warningPopup.Show()
 }

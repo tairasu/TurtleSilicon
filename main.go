@@ -15,7 +15,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const appVersion = "1.2.0"
+const appVersion = "1.2.1"
 
 func main() {
 	TSApp := app.NewWithID("com.tairasu.turtlesilicon")
