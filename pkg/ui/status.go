@@ -154,13 +154,13 @@ func updatePlayButtonState() {
 	if playButton != nil && playButtonText != nil {
 		if launchEnabled {
 			playButton.Enable()
-			// Update text to show enabled state with bright color
+			// Update text to show enabled state with white color
 			playButtonText.Segments = []widget.RichTextSegment{
 				&widget.TextSegment{
 					Text: "PLAY",
 					Style: widget.RichTextStyle{
 						SizeName:  theme.SizeNameHeadingText,
-						ColorName: theme.ColorNameForeground,
+						ColorName: theme.ColorNameForegroundOnPrimary,
 					},
 				},
 			}
