@@ -10,9 +10,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/widget"
 )
 
 const appVersion = "1.2.1"
@@ -26,29 +23,28 @@ func main() {
 	// Check for updates
 	go func() {
 		prefs, _ := utils.LoadPrefs()
-		latest, notes, update, err := utils.CheckForUpdate(appVersion)
-		debug.Printf("DEBUG RAW: latest=%q", latest)
-		latestVersion := strings.TrimLeft(latest, "v.")
-		debug.Printf("DEBUG: appVersion=%q, latest=%q, latestVersion=%q, suppressed=%q, update=%v, err=%v\n",
-			appVersion, latest, latestVersion, prefs.SuppressedUpdateVersion, update, err)
-		// Always skip popup if versions match
-		if latestVersion == appVersion {
+		updateInfo, updateAvailable, err := utils.CheckForUpdateWithAssets(appVersion)
+		if err != nil {
+			debug.Printf("Failed to check for updates: %v", err)
 			return
 		}
-		if err == nil && update && prefs.SuppressedUpdateVersion != latestVersion {
-			checkbox := widget.NewCheck("Do not show this anymore", func(bool) {})
-			content := container.NewVBox(
-				widget.NewLabel("A new version ("+latestVersion+") is available!"),
-				widget.NewLabel("Release notes:\n\n"+notes),
-				checkbox,
-			)
-			dialog.ShowCustomConfirm("Update Available", "OK", "Cancel", content, func(ok bool) {
-				if checkbox.Checked {
-					prefs.SuppressedUpdateVersion = latestVersion
-					utils.SavePrefs(prefs)
-				}
-			}, TSWindow)
+
+		if !updateAvailable {
+			debug.Printf("No updates available")
+			return
 		}
+
+		latestVersion := strings.TrimPrefix(updateInfo.TagName, "v")
+		debug.Printf("Update available: current=%s, latest=%s", appVersion, latestVersion)
+
+		// Skip if user has suppressed this version
+		if prefs.SuppressedUpdateVersion == latestVersion {
+			debug.Printf("Update suppressed by user: %s", latestVersion)
+			return
+		}
+
+		// Show enhanced update dialog
+		ui.ShowUpdateDialog(updateInfo, appVersion, TSWindow)
 	}()
 
 	content := ui.CreateUI(TSWindow)
