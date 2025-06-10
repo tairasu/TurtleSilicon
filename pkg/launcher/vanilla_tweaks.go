@@ -80,7 +80,7 @@ func ApplyVanillaTweaks(myWindow fyne.Window) error {
 
 	// Build the command to apply vanilla-tweaks using the correct format:
 	// cd "path" && "wineloader2" ./vanilla-tweaks.exe --no-frilldistance -no-farclip ./WoW.exe
-	shellCmd := fmt.Sprintf(`cd %s && %s ./vanilla-tweaks.exe --no-frilldistance -no-farclip ./WoW.exe`,
+	shellCmd := fmt.Sprintf(`cd %s && %s ./vanilla-tweaks.exe --no-frilldistance --no-farclip ./WoW.exe`,
 		utils.QuotePathForShell(paths.TurtlewowPath),
 		utils.QuotePathForShell(wineloader2Path))
 
