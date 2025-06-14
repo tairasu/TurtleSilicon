@@ -30,6 +30,11 @@ func UpdateAllStatuses() {
 	if optionAsAltStatusLabel != nil {
 		updateWineRegistryStatus()
 	}
+
+	// Update recommended settings button if component is initialized
+	if applyRecommendedSettingsButton != nil {
+		updateRecommendedSettingsButton()
+	}
 }
 
 // updateCrossoverStatus updates CrossOver path and patch status

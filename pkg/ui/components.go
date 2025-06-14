@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -46,6 +48,35 @@ func createOptionsComponents() {
 	})
 	vanillaTweaksCheckbox.SetChecked(prefs.EnableVanillaTweaks)
 	launcher.EnableVanillaTweaks = prefs.EnableVanillaTweaks
+
+	// Create recommended settings button with help icon
+	applyRecommendedSettingsButton = widget.NewButton("Apply recommended settings", func() {
+		err := launcher.ApplyRecommendedSettings()
+		if err != nil {
+			debug.Printf("Failed to apply recommended settings: %v", err)
+			// Show error dialog if we have a window reference
+			if currentWindow != nil {
+				dialog.ShowError(fmt.Errorf("failed to apply recommended settings: %v", err), currentWindow)
+			}
+		} else {
+			debug.Printf("Successfully applied recommended settings")
+			// Show success dialog if we have a window reference
+			if currentWindow != nil {
+				dialog.ShowInformation("Success", "Recommended graphics settings have been applied to Config.wtf", currentWindow)
+			}
+			// Update button state
+			updateRecommendedSettingsButton()
+		}
+	})
+	applyRecommendedSettingsButton.Importance = widget.MediumImportance
+
+	// Create help button for recommended settings
+	recommendedSettingsHelpButton = widget.NewButton("?", func() {
+		showRecommendedSettingsHelpPopup()
+	})
+	recommendedSettingsHelpButton.Importance = widget.MediumImportance
+	// Initialize button state
+	updateRecommendedSettingsButton()
 
 	// Create Wine registry Option-as-Alt buttons and status
 	createWineRegistryComponents()
@@ -349,4 +380,85 @@ func stopPulsingEffect() {
 		pulsingTicker.Stop()
 		pulsingTicker = nil
 	}
+}
+
+// updateRecommendedSettingsButton updates the state of the recommended settings button
+func updateRecommendedSettingsButton() {
+	if applyRecommendedSettingsButton == nil {
+		return
+	}
+
+	// Check if all recommended settings are already applied
+	if launcher.CheckRecommendedSettings() {
+		applyRecommendedSettingsButton.Disable()
+		applyRecommendedSettingsButton.SetText("Settings applied")
+	} else {
+		applyRecommendedSettingsButton.Enable()
+		applyRecommendedSettingsButton.SetText("Apply recommended settings")
+	}
+
+	// Help button should always be enabled
+	if recommendedSettingsHelpButton != nil {
+		recommendedSettingsHelpButton.Enable()
+	}
+}
+
+// showRecommendedSettingsHelpPopup shows a popup explaining the recommended graphics settings
+func showRecommendedSettingsHelpPopup() {
+	if currentWindow == nil {
+		return
+	}
+
+	// Create help content
+	helpTitle := widget.NewRichTextFromMarkdown("# 📋 Recommended Graphics Settings")
+
+	// Create individual setting labels for better formatting
+	settingsTitle := widget.NewLabel("The following settings will be applied to your Config.wtf file:")
+	settingsTitle.TextStyle = fyne.TextStyle{Bold: true}
+
+	setting1 := widget.NewLabel("• Terrain Distance (farclip): 177 - Reduces CPU overhead - more fps")
+	setting2 := widget.NewLabel("• Vertex Animation Shaders (M2UseShaders): Enabled - Prevents graphic glitches")
+	setting3 := widget.NewLabel("• Multisampling (gxMultisample): 2x - Makes portraits load properly")
+	setting4 := widget.NewLabel("• Shadow LOD (shadowLOD): 0 - 10% fps increase")
+
+	settingsContainer := container.NewVBox(
+		settingsTitle,
+		widget.NewSeparator(),
+		setting1,
+		setting2,
+		setting3,
+		setting4,
+		widget.NewSeparator(),
+	)
+
+	// Create OK button
+	okButton := widget.NewButton("OK", func() {
+		// This will be set when the popup is created
+	})
+	okButton.Importance = widget.MediumImportance
+
+	// Create help content container
+	helpContentContainer := container.NewVBox(
+		container.NewCenter(helpTitle),
+		widget.NewSeparator(),
+		settingsContainer,
+		widget.NewSeparator(),
+		container.NewCenter(okButton),
+	)
+
+	// Calculate popup size
+	windowSize := currentWindow.Content().Size()
+	popupWidth := windowSize.Width * 3 / 4
+	popupHeight := windowSize.Height * 3 / 4
+
+	// Create the help popup
+	helpPopup := widget.NewModalPopUp(container.NewPadded(helpContentContainer), currentWindow.Canvas())
+	helpPopup.Resize(fyne.NewSize(popupWidth, popupHeight))
+
+	// Set the OK button action to hide the help popup
+	okButton.OnTapped = func() {
+		helpPopup.Hide()
+	}
+
+	helpPopup.Show()
 }

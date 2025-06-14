@@ -15,12 +15,17 @@ func showOptionsPopup() {
 	// Create options content with better organization and smaller titles
 	optionsTitle := widget.NewLabel("Options")
 	optionsTitle.TextStyle = fyne.TextStyle{Bold: true}
+	// Create label for recommended settings
+	recommendedSettingsLabel := widget.NewLabel("Graphics settings:")
+
 	gameOptionsContainer := container.NewVBox(
 		optionsTitle,
 		widget.NewSeparator(),
 		metalHudCheckbox,
 		showTerminalCheckbox,
 		vanillaTweaksCheckbox,
+		widget.NewSeparator(),
+		container.NewBorder(nil, nil, recommendedSettingsLabel, container.NewHBox(applyRecommendedSettingsButton, recommendedSettingsHelpButton), nil),
 		widget.NewSeparator(),
 		container.NewBorder(nil, nil, nil, container.NewHBox(enableOptionAsAltButton, disableOptionAsAltButton), optionAsAltStatusLabel),
 	)

@@ -91,6 +91,7 @@ If you prefer to run the application directly from source code:
 1. Set "Terrain distance" as low as possible. This reduces the overhead stress on the CPU
 2. Turn Vertex Animation Shaders on. Otherwise you get graphic glitches on custom models.
 3. Set Multisampling to 24-bit color 24-bit depth **2x** to make portraits load
+4. Add `SET shadowLOD "0"` to your Config.wtf inside the WTF directory
 
 ## Build Instructions
 

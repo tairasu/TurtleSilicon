@@ -32,6 +32,10 @@ var (
 	showTerminalCheckbox  *widget.Check
 	vanillaTweaksCheckbox *widget.Check
 
+	// Recommended settings button
+	applyRecommendedSettingsButton *widget.Button
+	recommendedSettingsHelpButton  *widget.Button
+
 	// Wine registry buttons and status
 	enableOptionAsAltButton  *widget.Button
 	disableOptionAsAltButton *widget.Button
