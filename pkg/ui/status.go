@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/paths"
 	"turtlesilicon/pkg/service"
 	"turtlesilicon/pkg/utils"
@@ -109,11 +110,14 @@ func updateTurtleWoWStatus() {
 		rosettaX87CorrectSize := utils.CompareFileWithBundledResource(rosettaX87ExePath, "rosettax87/rosettax87")
 		libRuntimeRosettaX87CorrectSize := utils.CompareFileWithBundledResource(libRuntimeRosettaX87Path, "rosettax87/libRuntimeRosettax87")
 
+		// Check if shadowLOD setting is applied
+		shadowLODApplied := patching.CheckShadowLODSetting()
+
 		if utils.PathExists(winerosettaDllPath) && utils.PathExists(d3d9DllPath) && utils.PathExists(libSiliconPatchDllPath) &&
 			utils.DirExists(rosettaX87DirPath) && utils.PathExists(rosettaX87ExePath) &&
 			utils.PathExists(libRuntimeRosettaX87Path) && dllsFileValid &&
 			winerosettaDllCorrectSize && d3d9DllCorrectSize && libSiliconPatchCorrectSize &&
-			rosettaX87CorrectSize && libRuntimeRosettaX87CorrectSize {
+			rosettaX87CorrectSize && libRuntimeRosettaX87CorrectSize && shadowLODApplied {
 			paths.PatchesAppliedTurtleWoW = true
 		}
 	}

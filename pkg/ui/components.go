@@ -419,7 +419,6 @@ func showRecommendedSettingsHelpPopup() {
 	setting1 := widget.NewLabel("• Terrain Distance (farclip): 177 - Reduces CPU overhead - more fps")
 	setting2 := widget.NewLabel("• Vertex Animation Shaders (M2UseShaders): Enabled - Prevents graphic glitches")
 	setting3 := widget.NewLabel("• Multisampling (gxMultisample): 2x - Makes portraits load properly")
-	setting4 := widget.NewLabel("• Shadow LOD (shadowLOD): 0 - 10% fps increase")
 
 	settingsContainer := container.NewVBox(
 		settingsTitle,
@@ -427,7 +426,6 @@ func showRecommendedSettingsHelpPopup() {
 		setting1,
 		setting2,
 		setting3,
-		setting4,
 		widget.NewSeparator(),
 	)
 

@@ -19,7 +19,6 @@ var RecommendedSettings = map[string]string{
 	"gxDepthBits":          "24",
 	"gxMultisampleQuality": "0.000000",
 	"gxMultisample":        "2",
-	"shadowLOD":            "0",
 }
 
 // CheckRecommendedSettings reads the Config.wtf file and checks if all recommended settings are applied

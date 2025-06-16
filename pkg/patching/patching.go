@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"turtlesilicon/pkg/debug"
@@ -211,6 +212,12 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		}
 	}
 
+	// Apply shadowLOD setting to Config.wtf for FPS optimization
+	if err := applyShadowLODSetting(); err != nil {
+		debug.Printf("Warning: failed to apply shadowLOD setting to Config.wtf: %v", err)
+		// Continue with patching even if Config.wtf update fails
+	}
+
 	debug.Println("TurtleWoW patching with bundled resources completed successfully.")
 	dialog.ShowInformation("Success", "TurtleWoW patching process completed using bundled resources.", myWindow)
 	updateAllStatuses()
@@ -345,6 +352,12 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		}
 	}
 
+	// Remove shadowLOD setting from Config.wtf
+	if err := removeShadowLODSetting(); err != nil {
+		debug.Printf("Warning: failed to remove shadowLOD setting from Config.wtf: %v", err)
+		// Continue with unpatching even if Config.wtf update fails
+	}
+
 	debug.Println("TurtleWoW unpatching completed successfully.")
 	paths.PatchesAppliedTurtleWoW = false
 	dialog.ShowInformation("Success", "TurtleWoW unpatching process completed.", myWindow)
@@ -379,4 +392,140 @@ func UnpatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
 	paths.PatchesAppliedCrossOver = false
 	dialog.ShowInformation("Success", "CrossOver unpatching process completed.", myWindow)
 	updateAllStatuses()
+}
+
+// applyShadowLODSetting applies the shadowLOD setting to Config.wtf for FPS optimization
+func applyShadowLODSetting() error {
+	if paths.TurtlewowPath == "" {
+		return fmt.Errorf("TurtleWoW path not set")
+	}
+
+	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+
+	// Create WTF directory if it doesn't exist
+	wtfDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(wtfDir, 0755); err != nil {
+		return fmt.Errorf("failed to create WTF directory: %v", err)
+	}
+
+	var configText string
+
+	// Read existing config if it exists
+	if content, err := os.ReadFile(configPath); err == nil {
+		configText = string(content)
+	} else {
+		debug.Printf("Config.wtf not found, creating new file")
+		configText = ""
+	}
+
+	// Apply shadowLOD setting
+	configText = updateOrAddConfigSetting(configText, "shadowLOD", "0")
+
+	// Write the updated config back to file
+	if err := os.WriteFile(configPath, []byte(configText), 0644); err != nil {
+		return fmt.Errorf("failed to write Config.wtf: %v", err)
+	}
+
+	debug.Printf("Successfully applied shadowLOD setting to Config.wtf")
+	return nil
+}
+
+// updateOrAddConfigSetting updates an existing setting or adds a new one if it doesn't exist
+func updateOrAddConfigSetting(configText, setting, value string) string {
+	// Create regex pattern to match the setting
+	pattern := fmt.Sprintf(`SET\s+%s\s+"[^"]*"`, regexp.QuoteMeta(setting))
+	re := regexp.MustCompile(pattern)
+
+	newSetting := fmt.Sprintf(`SET %s "%s"`, setting, value)
+
+	if re.MatchString(configText) {
+		// Replace existing setting
+		configText = re.ReplaceAllString(configText, newSetting)
+		debug.Printf("Updated setting %s to %s", setting, value)
+	} else {
+		// Add new setting
+		if configText != "" && !strings.HasSuffix(configText, "\n") {
+			configText += "\n"
+		}
+		configText += newSetting + "\n"
+		debug.Printf("Added new setting %s with value %s", setting, value)
+	}
+
+	return configText
+}
+
+// CheckShadowLODSetting checks if the shadowLOD setting is correctly applied in Config.wtf
+func CheckShadowLODSetting() bool {
+	if paths.TurtlewowPath == "" {
+		return false
+	}
+
+	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return false
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return false
+	}
+
+	configText := string(content)
+	return isConfigSettingCorrect(configText, "shadowLOD", "0")
+}
+
+// isConfigSettingCorrect checks if a specific setting has the correct value in the config text
+func isConfigSettingCorrect(configText, setting, expectedValue string) bool {
+	// Create regex pattern to match the setting
+	pattern := fmt.Sprintf(`SET\s+%s\s+"([^"]*)"`, regexp.QuoteMeta(setting))
+	re := regexp.MustCompile(pattern)
+
+	matches := re.FindStringSubmatch(configText)
+	if len(matches) < 2 {
+		return false
+	}
+
+	currentValue := matches[1]
+	return currentValue == expectedValue
+}
+
+// removeShadowLODSetting removes the shadowLOD setting from Config.wtf
+func removeShadowLODSetting() error {
+	if paths.TurtlewowPath == "" {
+		return fmt.Errorf("TurtleWoW path not set")
+	}
+
+	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		debug.Printf("Config.wtf not found, nothing to remove")
+		return nil
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to read Config.wtf: %v", err)
+	}
+
+	configText := string(content)
+
+	// Remove shadowLOD setting if it exists
+	pattern := fmt.Sprintf(`SET\s+%s\s+"[^"]*"[\r\n]*`, regexp.QuoteMeta("shadowLOD"))
+	re := regexp.MustCompile(pattern)
+
+	if re.MatchString(configText) {
+		configText = re.ReplaceAllString(configText, "")
+		debug.Printf("Removed shadowLOD setting from Config.wtf")
+
+		// Write the updated config back to file
+		if err := os.WriteFile(configPath, []byte(configText), 0644); err != nil {
+			return fmt.Errorf("failed to write Config.wtf: %v", err)
+		}
+		debug.Printf("Successfully updated Config.wtf")
+	} else {
+		debug.Printf("shadowLOD setting not found in Config.wtf, nothing to remove")
+	}
+
+	return nil
 }
