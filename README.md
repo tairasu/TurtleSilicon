@@ -14,6 +14,7 @@ A user-friendly launcher for Turtle WoW on Apple Silicon Macs, with one-click pa
 Before you begin, ensure you have the following:
 
 *   A working version of **CrossOver** installed (the trial version is sufficient and can still be used after expiration).
+    - I recommend using CrossOver v25.0.1 or later. Older versions will cause issues.
 *   The **Turtle WoW Client** downloaded from the official website.
 
 ## Credits
