@@ -243,7 +243,11 @@ func PatchCrossOver(myWindow fyne.Window, updateAllStatuses func()) {
 
 	debug.Printf("Copying %s to %s", wineloaderOrig, wineloaderCopy)
 	if err := utils.CopyFile(wineloaderOrig, wineloaderCopy); err != nil {
-		dialog.ShowError(fmt.Errorf("failed to copy wineloader: %w", err), myWindow)
+		errMsg := fmt.Sprintf("failed to copy wineloader: %v", err)
+		if strings.Contains(err.Error(), "operation not permitted") {
+			errMsg += "\n\nSolution: Open System Settings, go to Privacy & Security > App Management, and enable TurtleSilicon."
+		}
+		dialog.ShowError(fmt.Errorf(errMsg), myWindow)
 		paths.PatchesAppliedCrossOver = false
 		updateAllStatuses()
 		return
