@@ -43,6 +43,12 @@ clean:
 	rm -f turtlesilicon
 
 dmg: build-release
+	@echo "Preparing DMG staging directory..."
+	@rm -rf dmg-staging
+	@mkdir dmg-staging
+	@cp -R TurtleSilicon.app dmg-staging/
+	@ln -s /Applications dmg-staging/Applications
 	@echo "Creating DMG file..."
-	@hdiutil create -volname TurtleSilicon -srcfolder TurtleSilicon.app -ov -format UDZO TurtleSilicon.dmg
+	@hdiutil create -volname TurtleSilicon -srcfolder dmg-staging -ov -format UDZO TurtleSilicon.dmg
 	@echo "DMG created: TurtleSilicon.dmg"
+	@rm -rf dmg-staging
