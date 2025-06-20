@@ -142,6 +142,11 @@ func createBottomBar(myWindow fyne.Window) fyne.CanvasObject {
 		showOptionsPopup()
 	})
 
+	// Troubleshooting button
+	troubleshootingButton = widget.NewButton("Troubleshooting", func() {
+		showTroubleshootingPopup()
+	})
+
 	// GitHub button
 	githubButton := widget.NewButton("GitHub", func() {
 		githubURL := "https://github.com/tairasu/TurtleSilicon"
@@ -168,7 +173,7 @@ func createBottomBar(myWindow fyne.Window) fyne.CanvasObject {
 
 	leftButtons := container.NewHBox(
 		optionsButton,
-		widget.NewSeparator(), // Visual separator
+		troubleshootingButton,
 		githubButton,
 	)
 

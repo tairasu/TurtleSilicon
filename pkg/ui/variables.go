@@ -53,4 +53,13 @@ var (
 
 	// Pulsing effect variables (pulsingActive is in status.go)
 	pulsingTicker *time.Ticker
+
+	// Troubleshooting popup and controls
+	troubleshootingButton       *widget.Button
+	troubleshootingPopupActive  bool
+	crossoverVersionStatusLabel *widget.RichText
+	wdbDeleteButton             *widget.Button
+	wineDeleteButton            *widget.Button
+	appMgmtPermissionButton     *widget.Button
+	troubleshootingCloseButton  *widget.Button
 )
