@@ -49,6 +49,17 @@ func createOptionsComponents() {
 	vanillaTweaksCheckbox.SetChecked(prefs.EnableVanillaTweaks)
 	launcher.EnableVanillaTweaks = prefs.EnableVanillaTweaks
 
+	autoDeleteWdbCheckbox = widget.NewCheck("Auto-delete WDB directory on launch", func(checked bool) {
+		launcher.AutoDeleteWdb = checked
+		// Save to preferences
+		prefs, _ := utils.LoadPrefs()
+		prefs.AutoDeleteWdb = checked
+		utils.SavePrefs(prefs)
+		debug.Printf("Auto-delete WDB enabled: %v", launcher.AutoDeleteWdb)
+	})
+	autoDeleteWdbCheckbox.SetChecked(prefs.AutoDeleteWdb)
+	launcher.AutoDeleteWdb = prefs.AutoDeleteWdb
+
 	// Create recommended settings button with help icon
 	applyRecommendedSettingsButton = widget.NewButton("Apply recommended settings", func() {
 		err := launcher.ApplyRecommendedSettings()

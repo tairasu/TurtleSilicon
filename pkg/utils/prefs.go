@@ -15,6 +15,7 @@ type UserPrefs struct {
 	ShowTerminalNormally    bool   `json:"show_terminal_normally"`
 	EnableVanillaTweaks     bool   `json:"enable_vanilla_tweaks"`
 	RemapOptionAsAlt        bool   `json:"remap_option_as_alt"`
+	AutoDeleteWdb           bool   `json:"auto_delete_wdb"`
 }
 
 func getPrefsPath() (string, error) {

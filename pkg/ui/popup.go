@@ -35,6 +35,7 @@ func showOptionsPopup() {
 		metalHudCheckbox,
 		showTerminalCheckbox,
 		vanillaTweaksCheckbox,
+		autoDeleteWdbCheckbox,
 		widget.NewSeparator(),
 		container.NewBorder(nil, nil, recommendedSettingsLabel, container.NewHBox(applyRecommendedSettingsButton, recommendedSettingsHelpButton), nil),
 		widget.NewSeparator(),
@@ -74,7 +75,7 @@ func showOptionsPopup() {
 	// Get the window size and calculate 2/3 size
 	windowSize := currentWindow.Content().Size()
 	popupWidth := windowSize.Width * 5 / 6
-	popupHeight := windowSize.Height * 5 / 6
+	popupHeight := windowSize.Height * 9 / 10
 
 	// Create a modal popup
 	popup := widget.NewModalPopUp(popupContent, currentWindow.Canvas())

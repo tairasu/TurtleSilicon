@@ -31,6 +31,7 @@ var (
 	metalHudCheckbox      *widget.Check
 	showTerminalCheckbox  *widget.Check
 	vanillaTweaksCheckbox *widget.Check
+	autoDeleteWdbCheckbox *widget.Check
 
 	// Recommended settings button
 	applyRecommendedSettingsButton *widget.Button

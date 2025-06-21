@@ -19,6 +19,7 @@ import (
 var EnableMetalHud = true       // Default to enabled
 var CustomEnvVars = ""          // Custom environment variables
 var EnableVanillaTweaks = false // Default to disabled
+var AutoDeleteWdb = false       // Default to disabled
 
 // Terminal state management
 var (
@@ -175,6 +176,22 @@ func continueLaunch(myWindow fyne.Window, wowExePath string) {
 	if !utils.PathExists(wowExePath) {
 		dialog.ShowError(fmt.Errorf("WoW executable not found at %s. Ensure your TurtleWoW directory is correct", wowExePath), myWindow)
 		return
+	}
+
+	// Auto-delete WDB directory if enabled
+	if AutoDeleteWdb {
+		wdbPath := filepath.Join(paths.TurtlewowPath, "WDB")
+		if utils.DirExists(wdbPath) {
+			debug.Printf("Auto-deleting WDB directory: %s", wdbPath)
+			if err := os.RemoveAll(wdbPath); err != nil {
+				debug.Printf("Warning: failed to auto-delete WDB directory: %v", err)
+				// Don't block the launch, just log the error
+			} else {
+				debug.Printf("Successfully auto-deleted WDB directory")
+			}
+		} else {
+			debug.Printf("WDB directory not found, nothing to delete")
+		}
 	}
 
 	// Since RosettaX87 service is already running, we can directly launch WoW
