@@ -1,6 +1,14 @@
-# TurtleSilicon <img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center">
+<h1 align="center"><img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center"> TurtleSilicon</h1> 
 
-[![Build](https://github.com/tairasu/TurtleSilicon/actions/workflows/build.yml/badge.svg)](https://github.com/tairasu/TurtleSilicon/actions/workflows/build.yml)
+<div align="center">
+    
+  <a href="">[![Build](https://github.com/tairasu/TurtleSilicon/actions/workflows/build.yml/badge.svg)](https://github.com/tairasu/TurtleSilicon/actions/workflows/build.yml)</a>
+  <a href="">[![Github All Releases](https://img.shields.io/github/downloads/tairasu/TurtleSilicon/total.svg)]()</a>
+  
+</div>
+
+
+
 
 <div align="center">
 <img src="img/turtlesilicon-fps_v2.png" alt="Turtle WoW FPS on Apple Silicon" width="49%" />
