@@ -13,6 +13,8 @@ import (
 
 	"howett.net/plist"
 
+	"turtlesilicon/pkg/debug"
+	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/paths"
 	"turtlesilicon/pkg/utils"
 )
@@ -23,25 +25,84 @@ func showOptionsPopup() {
 		return
 	}
 
-	// Create options content with better organization and smaller titles
-	optionsTitle := widget.NewLabel("Options")
-	optionsTitle.TextStyle = fyne.TextStyle{Bold: true}
-	// Create label for recommended settings
-	recommendedSettingsLabel := widget.NewLabel("Graphics settings:")
+	// Check graphics settings presence and update preferences before showing UI
+	patching.CheckGraphicsSettingsPresence()
 
-	gameOptionsContainer := container.NewVBox(
-		optionsTitle,
+	// Load graphics settings from Config.wtf and update preferences
+	if err := patching.LoadGraphicsSettingsFromConfig(); err != nil {
+		debug.Printf("Warning: failed to load graphics settings from Config.wtf: %v", err)
+	}
+
+	// Refresh checkbox states to reflect current settings
+	refreshGraphicsSettingsCheckboxes()
+
+	// Create General tab content
+	generalTitle := widget.NewLabel("General Settings")
+	generalTitle.TextStyle = fyne.TextStyle{Bold: true}
+
+	generalContainer := container.NewVBox(
+		generalTitle,
 		widget.NewSeparator(),
 		metalHudCheckbox,
 		showTerminalCheckbox,
 		vanillaTweaksCheckbox,
 		autoDeleteWdbCheckbox,
 		widget.NewSeparator(),
-		container.NewBorder(nil, nil, recommendedSettingsLabel, container.NewHBox(applyRecommendedSettingsButton, recommendedSettingsHelpButton), nil),
-		widget.NewSeparator(),
 		container.NewBorder(nil, nil, nil, container.NewHBox(enableOptionAsAltButton, disableOptionAsAltButton), optionAsAltStatusLabel),
 	)
 
+	// Create Graphics tab content
+	graphicsTitle := widget.NewLabel("Graphics Settings")
+	graphicsTitle.TextStyle = fyne.TextStyle{Bold: true}
+
+	graphicsDescription := widget.NewLabel("Select graphics settings to apply to Config.wtf:")
+	graphicsDescription.TextStyle = fyne.TextStyle{Italic: true}
+
+	// Create bold text labels for each setting
+	terrainLabel := widget.NewLabel("Reduce Terrain Distance")
+	terrainLabel.TextStyle = fyne.TextStyle{Bold: true}
+
+	multisampleLabel := widget.NewLabel("Set Multisample to 2x")
+	multisampleLabel.TextStyle = fyne.TextStyle{Bold: true}
+
+	shadowLabel := widget.NewLabel("Set Shadow LOD to 0")
+	shadowLabel.TextStyle = fyne.TextStyle{Bold: true}
+
+	libSiliconPatchLabel := widget.NewLabel("Enable libSiliconPatch")
+	libSiliconPatchLabel.TextStyle = fyne.TextStyle{Bold: true}
+
+	// Create setting rows with help buttons between checkbox and label
+	terrainRow := container.NewHBox(
+		reduceTerrainDistanceCheckbox,
+		reduceTerrainDistanceHelpButton,
+		terrainLabel)
+	multisampleRow := container.NewHBox(
+		setMultisampleTo2xCheckbox,
+		setMultisampleTo2xHelpButton,
+		multisampleLabel)
+	shadowRow := container.NewHBox(
+		setShadowLOD0Checkbox,
+		setShadowLOD0HelpButton,
+		shadowLabel)
+	libSiliconPatchRow := container.NewHBox(
+		libSiliconPatchCheckbox,
+		libSiliconPatchHelpButton,
+		libSiliconPatchLabel)
+
+	graphicsContainer := container.NewVBox(
+		graphicsTitle,
+		widget.NewSeparator(),
+		graphicsDescription,
+		widget.NewSeparator(),
+		terrainRow,
+		multisampleRow,
+		shadowRow,
+		libSiliconPatchRow,
+		widget.NewSeparator(),
+		container.NewCenter(applyGraphicsSettingsButton),
+	)
+
+	// Create Environment Variables tab content
 	envVarsTitle := widget.NewLabel("Environment Variables")
 	envVarsTitle.TextStyle = fyne.TextStyle{Bold: true}
 	envVarsContainer := container.NewVBox(
@@ -50,13 +111,15 @@ func showOptionsPopup() {
 		envVarsEntry,
 	)
 
-	// Create a scrollable container for all options
-	optionsContent := container.NewVBox(
-		gameOptionsContainer,
-		envVarsContainer,
+	// Create tabs
+	tabs := container.NewAppTabs(
+		container.NewTabItem("General", container.NewScroll(generalContainer)),
+		container.NewTabItem("Graphics", container.NewScroll(graphicsContainer)),
+		container.NewTabItem("Environment", container.NewScroll(envVarsContainer)),
 	)
 
-	scrollContainer := container.NewScroll(optionsContent)
+	// Set tab location to top
+	tabs.SetTabLocation(container.TabLocationTop)
 
 	// Create close button
 	closeButton := widget.NewButton("Close", func() {
@@ -65,11 +128,11 @@ func showOptionsPopup() {
 
 	// Create the popup content with close button
 	popupContent := container.NewBorder(
-		nil,                                  // top
-		container.NewCenter(closeButton),     // bottom
-		nil,                                  // left
-		nil,                                  // right
-		container.NewPadded(scrollContainer), // center
+		nil,                              // top
+		container.NewCenter(closeButton), // bottom
+		nil,                              // left
+		nil,                              // right
+		container.NewPadded(tabs),        // center
 	)
 
 	// Get the window size and calculate 2/3 size

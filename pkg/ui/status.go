@@ -97,7 +97,15 @@ func updateTurtleWoWStatus() {
 		if utils.PathExists(dllsTextFile) {
 			if fileContent, err := os.ReadFile(dllsTextFile); err == nil {
 				contentStr := string(fileContent)
-				if strings.Contains(contentStr, "winerosetta.dll") && strings.Contains(contentStr, "libSiliconPatch.dll") {
+				winerosettaPresent := strings.Contains(contentStr, "winerosetta.dll")
+				
+				// Check if libSiliconPatch should be present based on user preference
+				prefs, _ := utils.LoadPrefs()
+				libSiliconPatchRequired := prefs.EnableLibSiliconPatch
+				libSiliconPatchPresent := strings.Contains(contentStr, "libSiliconPatch.dll")
+				
+				// Validate dlls.txt: winerosetta must be present, libSiliconPatch based on setting
+				if winerosettaPresent && (!libSiliconPatchRequired || libSiliconPatchPresent) {
 					dllsFileValid = true
 				}
 			}
@@ -110,14 +118,18 @@ func updateTurtleWoWStatus() {
 		rosettaX87CorrectSize := utils.CompareFileWithBundledResource(rosettaX87ExePath, "rosettax87/rosettax87")
 		libRuntimeRosettaX87CorrectSize := utils.CompareFileWithBundledResource(libRuntimeRosettaX87Path, "rosettax87/libRuntimeRosettax87")
 
-		// Check if shadowLOD setting is applied
-		shadowLODApplied := patching.CheckShadowLODSetting()
+		// Check if shadowLOD setting is applied (only if user has enabled it in graphics settings)
+		prefs, _ := utils.LoadPrefs()
+		shadowLODRequiredAndApplied := true // Default to true if not required
+		if prefs.SetShadowLOD0 {
+			shadowLODRequiredAndApplied = patching.CheckShadowLODSetting()
+		}
 
 		if utils.PathExists(winerosettaDllPath) && utils.PathExists(d3d9DllPath) && utils.PathExists(libSiliconPatchDllPath) &&
 			utils.DirExists(rosettaX87DirPath) && utils.PathExists(rosettaX87ExePath) &&
 			utils.PathExists(libRuntimeRosettaX87Path) && dllsFileValid &&
 			winerosettaDllCorrectSize && d3d9DllCorrectSize && libSiliconPatchCorrectSize &&
-			rosettaX87CorrectSize && libRuntimeRosettaX87CorrectSize && shadowLODApplied {
+			rosettaX87CorrectSize && libRuntimeRosettaX87CorrectSize && shadowLODRequiredAndApplied {
 			paths.PatchesAppliedTurtleWoW = true
 		}
 	}

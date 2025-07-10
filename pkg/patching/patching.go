@@ -157,6 +157,33 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 	needsWinerosettaUpdate := true
 	needsLibSiliconPatchUpdate := true
 
+	// Check user's preference for libSiliconPatch and shadowLOD
+	prefs, _ := utils.LoadPrefs()
+	
+	// Enable by default unless user has explicitly disabled them
+	shouldEnableLibSiliconPatch := true
+	shouldEnableShadowLOD := true
+	
+	// If user has manually disabled these settings, respect their choice
+	if prefs.UserDisabledLibSiliconPatch {
+		shouldEnableLibSiliconPatch = false
+		debug.Printf("libSiliconPatch disabled by user choice")
+	} else {
+		// Enable by default and update preferences
+		prefs.EnableLibSiliconPatch = true
+	}
+	
+	if prefs.UserDisabledShadowLOD {
+		shouldEnableShadowLOD = false
+		debug.Printf("shadowLOD disabled by user choice")
+	} else {
+		// Enable by default and update preferences
+		prefs.SetShadowLOD0 = true
+	}
+	
+	// Save updated preferences
+	utils.SavePrefs(prefs)
+
 	if fileContentBytes, err := os.ReadFile(dllsTextFile); err == nil {
 		fileContent := string(fileContentBytes)
 		if strings.Contains(fileContent, winerosettaEntry) {
@@ -168,7 +195,13 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			needsLibSiliconPatchUpdate = false
 		}
 	} else {
-		debug.Printf("dlls.txt not found, will create a new one with both entries")
+		debug.Printf("dlls.txt not found, will create a new one")
+	}
+
+	// Only add libSiliconPatch if user wants it enabled
+	if !shouldEnableLibSiliconPatch {
+		needsLibSiliconPatchUpdate = false
+		debug.Printf("libSiliconPatch disabled by user preference, will not add to dlls.txt")
 	}
 
 	if needsWinerosettaUpdate || needsLibSiliconPatchUpdate {
@@ -196,7 +229,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 				debug.Printf("Adding %s to dlls.txt", winerosettaEntry)
 			}
 		}
-		if needsLibSiliconPatchUpdate {
+		if needsLibSiliconPatchUpdate && shouldEnableLibSiliconPatch {
 			if !strings.Contains(updatedContent, libSiliconPatchEntry+"\n") {
 				updatedContent += libSiliconPatchEntry + "\n"
 				debug.Printf("Adding %s to dlls.txt", libSiliconPatchEntry)
@@ -212,10 +245,31 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		}
 	}
 
-	// Apply shadowLOD setting to Config.wtf for FPS optimization
-	if err := applyShadowLODSetting(); err != nil {
-		debug.Printf("Warning: failed to apply shadowLOD setting to Config.wtf: %v", err)
+	// If user has disabled libSiliconPatch, make sure it's removed from dlls.txt
+	if !shouldEnableLibSiliconPatch {
+		if err := disableLibSiliconPatchInDlls(); err != nil {
+			debug.Printf("Warning: failed to remove libSiliconPatch from dlls.txt: %v", err)
+		}
+	}
+
+	// Always apply vertex animation shaders setting to Config.wtf
+	if err := applyVertexAnimShadersSetting(); err != nil {
+		debug.Printf("Warning: failed to apply vertex animation shaders setting to Config.wtf: %v", err)
 		// Continue with patching even if Config.wtf update fails
+	}
+
+	// Apply shadowLOD setting to Config.wtf for FPS optimization
+	// Use shouldEnableShadowLOD which accounts for first-time patching
+	if shouldEnableShadowLOD {
+		if err := applyShadowLODSetting(); err != nil {
+			debug.Printf("Warning: failed to apply shadowLOD setting to Config.wtf: %v", err)
+			// Continue with patching even if Config.wtf update fails
+		}
+	} else {
+		// If user has disabled shadowLOD, make sure it's removed from Config.wtf
+		if err := removeShadowLODSetting(); err != nil {
+			debug.Printf("Warning: failed to remove shadowLOD setting from Config.wtf: %v", err)
+		}
 	}
 
 	debug.Println("TurtleWoW patching with bundled resources completed successfully.")
@@ -356,10 +410,13 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		}
 	}
 
-	// Remove shadowLOD setting from Config.wtf
-	if err := removeShadowLODSetting(); err != nil {
-		debug.Printf("Warning: failed to remove shadowLOD setting from Config.wtf: %v", err)
-		// Continue with unpatching even if Config.wtf update fails
+	// Remove shadowLOD setting from Config.wtf - only if it was applied via graphics settings
+	prefs, _ := utils.LoadPrefs()
+	if prefs.SetShadowLOD0 {
+		if err := removeShadowLODSetting(); err != nil {
+			debug.Printf("Warning: failed to remove shadowLOD setting from Config.wtf: %v", err)
+			// Continue with unpatching even if Config.wtf update fails
+		}
 	}
 
 	debug.Println("TurtleWoW unpatching completed successfully.")
@@ -458,6 +515,20 @@ func updateOrAddConfigSetting(configText, setting, value string) string {
 	return configText
 }
 
+// removeConfigSetting removes a setting from the config text
+func removeConfigSetting(configText, setting string) string {
+	// Create regex pattern to match the setting
+	pattern := fmt.Sprintf(`SET\s+%s\s+"[^"]*"[\r\n]*`, regexp.QuoteMeta(setting))
+	re := regexp.MustCompile(pattern)
+
+	if re.MatchString(configText) {
+		configText = re.ReplaceAllString(configText, "")
+		debug.Printf("Removed setting %s from config", setting)
+	}
+
+	return configText
+}
+
 // CheckShadowLODSetting checks if the shadowLOD setting is correctly applied in Config.wtf
 func CheckShadowLODSetting() bool {
 	if paths.TurtlewowPath == "" {
@@ -531,5 +602,327 @@ func removeShadowLODSetting() error {
 		debug.Printf("shadowLOD setting not found in Config.wtf, nothing to remove")
 	}
 
+	return nil
+}
+
+// applyVertexAnimShadersSetting applies the vertex animation shaders setting to Config.wtf
+func applyVertexAnimShadersSetting() error {
+	if paths.TurtlewowPath == "" {
+		return fmt.Errorf("TurtleWoW path not set")
+	}
+
+	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+
+	// Create WTF directory if it doesn't exist
+	wtfDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(wtfDir, 0755); err != nil {
+		return fmt.Errorf("failed to create WTF directory: %v", err)
+	}
+
+	var configText string
+
+	// Read existing config if it exists
+	if content, err := os.ReadFile(configPath); err == nil {
+		configText = string(content)
+	} else {
+		debug.Printf("Config.wtf not found, creating new file")
+		configText = ""
+	}
+
+	// Apply vertex animation shaders setting
+	configText = updateOrAddConfigSetting(configText, "M2UseShaders", "1")
+
+	// Write the updated config back to file
+	if err := os.WriteFile(configPath, []byte(configText), 0644); err != nil {
+		return fmt.Errorf("failed to write Config.wtf: %v", err)
+	}
+
+	debug.Printf("Successfully applied vertex animation shaders setting to Config.wtf")
+	return nil
+}
+
+// ApplyGraphicsSettings applies the selected graphics settings to Config.wtf
+func ApplyGraphicsSettings(myWindow fyne.Window) error {
+	prefs, err := utils.LoadPrefs()
+	if err != nil {
+		return fmt.Errorf("failed to load preferences: %v", err)
+	}
+
+	if paths.TurtlewowPath == "" {
+		return fmt.Errorf("TurtleWoW path not set")
+	}
+
+	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+
+	// Create WTF directory if it doesn't exist
+	wtfDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(wtfDir, 0755); err != nil {
+		return fmt.Errorf("failed to create WTF directory: %v", err)
+	}
+
+	var configText string
+
+	// Read existing config if it exists
+	if content, err := os.ReadFile(configPath); err == nil {
+		configText = string(content)
+	} else {
+		debug.Printf("Config.wtf not found, creating new file")
+		configText = ""
+	}
+
+	// Apply or remove graphics settings based on user preferences
+	if prefs.ReduceTerrainDistance {
+		configText = updateOrAddConfigSetting(configText, "farclip", "177")
+	} else {
+		configText = removeConfigSetting(configText, "farclip")
+	}
+	
+	if prefs.SetMultisampleTo2x {
+		configText = updateOrAddConfigSetting(configText, "gxMultisample", "2")
+	} else {
+		configText = removeConfigSetting(configText, "gxMultisample")
+	}
+	
+	if prefs.SetShadowLOD0 {
+		configText = updateOrAddConfigSetting(configText, "shadowLOD", "0")
+	} else {
+		configText = removeConfigSetting(configText, "shadowLOD")
+	}
+
+	// Handle libSiliconPatch.dll in dlls.txt (only if DLL exists)
+	libSiliconPatchPath := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
+	if utils.PathExists(libSiliconPatchPath) {
+		if prefs.EnableLibSiliconPatch {
+			if err := enableLibSiliconPatchInDlls(); err != nil {
+				debug.Printf("Warning: failed to enable libSiliconPatch in dlls.txt: %v", err)
+			}
+		} else {
+			if err := disableLibSiliconPatchInDlls(); err != nil {
+				debug.Printf("Warning: failed to disable libSiliconPatch in dlls.txt: %v", err)
+			}
+		}
+	}
+
+	// Write the updated config back to file
+	if err := os.WriteFile(configPath, []byte(configText), 0644); err != nil {
+		return fmt.Errorf("failed to write Config.wtf: %v", err)
+	}
+
+	debug.Printf("Successfully applied graphics settings to Config.wtf")
+	return nil
+}
+
+// CheckGraphicsSettings checks if the graphics settings are correctly applied in Config.wtf
+func CheckGraphicsSettings() (bool, bool, bool) {
+	prefs, _ := utils.LoadPrefs()
+	
+	if paths.TurtlewowPath == "" {
+		return false, false, false
+	}
+
+	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return false, false, false
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return false, false, false
+	}
+
+	configText := string(content)
+	
+	terrainCorrect := !prefs.ReduceTerrainDistance || isConfigSettingCorrect(configText, "farclip", "177")
+	multisampleCorrect := !prefs.SetMultisampleTo2x || isConfigSettingCorrect(configText, "gxMultisample", "2")
+	shadowCorrect := !prefs.SetShadowLOD0 || isConfigSettingCorrect(configText, "shadowLOD", "0")
+
+	return terrainCorrect, multisampleCorrect, shadowCorrect
+}
+
+// LoadGraphicsSettingsFromConfig reads Config.wtf and updates preferences with current settings
+func LoadGraphicsSettingsFromConfig() error {
+	if paths.TurtlewowPath == "" {
+		return fmt.Errorf("TurtleWoW path not set")
+	}
+
+	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+
+	// If Config.wtf doesn't exist, nothing to load
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		debug.Printf("Config.wtf not found, using default graphics settings")
+		return nil
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to read Config.wtf: %v", err)
+	}
+
+	configText := string(content)
+
+	// Load current preferences
+	prefs, err := utils.LoadPrefs()
+	if err != nil {
+		return fmt.Errorf("failed to load preferences: %v", err)
+	}
+
+	// Check each graphics setting and update preferences
+	prefs.ReduceTerrainDistance = isConfigSettingCorrect(configText, "farclip", "177")
+	prefs.SetMultisampleTo2x = isConfigSettingCorrect(configText, "gxMultisample", "2")
+	prefs.SetShadowLOD0 = isConfigSettingCorrect(configText, "shadowLOD", "0")
+	
+	// Check libSiliconPatch status (DLL exists and enabled in dlls.txt)
+	libSiliconPatchPath := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
+	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
+	libSiliconPatchExists := utils.PathExists(libSiliconPatchPath)
+	libSiliconPatchEnabled := false
+	
+	if libSiliconPatchExists && utils.PathExists(dllsTextFile) {
+		if dllsContent, err := os.ReadFile(dllsTextFile); err == nil {
+			libSiliconPatchEnabled = strings.Contains(string(dllsContent), "libSiliconPatch.dll")
+		}
+	}
+	prefs.EnableLibSiliconPatch = libSiliconPatchExists && libSiliconPatchEnabled
+
+	// Save updated preferences
+	if err := utils.SavePrefs(prefs); err != nil {
+		return fmt.Errorf("failed to save preferences: %v", err)
+	}
+
+	debug.Printf("Loaded graphics settings from Config.wtf: terrain=%v, multisample=%v, shadow=%v, libSiliconPatch=%v", 
+		prefs.ReduceTerrainDistance, prefs.SetMultisampleTo2x, prefs.SetShadowLOD0, prefs.EnableLibSiliconPatch)
+
+	return nil
+}
+
+// CheckGraphicsSettingsPresence checks if libSiliconPatch.dll exists and shadowLOD is applied, updates preferences accordingly
+func CheckGraphicsSettingsPresence() {
+	if paths.TurtlewowPath == "" {
+		return
+	}
+
+	libSiliconPatchPath := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
+	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
+	
+	// Check if libSiliconPatch.dll exists
+	libSiliconPatchExists := utils.PathExists(libSiliconPatchPath)
+	
+	// Check if it's enabled in dlls.txt
+	libSiliconPatchEnabled := false
+	if utils.PathExists(dllsTextFile) {
+		if fileContentBytes, err := os.ReadFile(dllsTextFile); err == nil {
+			fileContent := string(fileContentBytes)
+			libSiliconPatchEnabled = strings.Contains(fileContent, "libSiliconPatch.dll")
+		}
+	}
+	
+	// Check if shadowLOD is currently applied
+	shadowLODApplied := CheckShadowLODSetting()
+	
+	// Load current preferences
+	prefs, _ := utils.LoadPrefs()
+	
+	// Handle libSiliconPatch preference detection
+	if libSiliconPatchExists {
+		if libSiliconPatchEnabled && !prefs.EnableLibSiliconPatch {
+			// DLL is currently enabled but user preference says disabled - likely first run detection
+			prefs.EnableLibSiliconPatch = true
+			debug.Printf("libSiliconPatch detected as enabled, setting user preference to enabled")
+		} else if !libSiliconPatchEnabled && prefs.EnableLibSiliconPatch {
+			// DLL exists but not enabled, user preference says enabled - respect user choice
+			debug.Printf("libSiliconPatch disabled in dlls.txt but user preference is enabled - keeping user preference")
+		}
+	}
+	
+	// Handle shadowLOD preference detection - enable by default if currently applied
+	if shadowLODApplied && !prefs.SetShadowLOD0 {
+		// shadowLOD is currently applied but user preference says disabled - likely first run detection
+		prefs.SetShadowLOD0 = true
+		debug.Printf("shadowLOD detected as applied, setting user preference to enabled")
+	} else if !shadowLODApplied && prefs.SetShadowLOD0 {
+		// shadowLOD not applied but user preference says enabled - respect user choice
+		debug.Printf("shadowLOD not applied but user preference is enabled - keeping user preference")
+	}
+	
+	// Save any changes
+	utils.SavePrefs(prefs)
+	
+	debug.Printf("Graphics settings detection: libSiliconPatch exists=%v, enabled_in_dlls=%v, user_setting=%v; shadowLOD applied=%v, user_setting=%v", 
+		libSiliconPatchExists, libSiliconPatchEnabled, prefs.EnableLibSiliconPatch, shadowLODApplied, prefs.SetShadowLOD0)
+}
+
+// enableLibSiliconPatchInDlls adds libSiliconPatch.dll to dlls.txt if not present
+func enableLibSiliconPatchInDlls() error {
+	if paths.TurtlewowPath == "" {
+		return fmt.Errorf("TurtleWoW path not set")
+	}
+
+	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
+	libSiliconPatchEntry := "libSiliconPatch.dll"
+
+	var fileContentBytes []byte
+	var err error
+	if utils.PathExists(dllsTextFile) {
+		fileContentBytes, err = os.ReadFile(dllsTextFile)
+		if err != nil {
+			return fmt.Errorf("failed to read dlls.txt: %v", err)
+		}
+	}
+
+	currentContent := string(fileContentBytes)
+	if strings.Contains(currentContent, libSiliconPatchEntry) {
+		debug.Printf("libSiliconPatch.dll already present in dlls.txt")
+		return nil
+	}
+
+	// Add libSiliconPatch.dll to dlls.txt
+	if len(currentContent) > 0 && !strings.HasSuffix(currentContent, "\n") {
+		currentContent += "\n"
+	}
+	currentContent += libSiliconPatchEntry + "\n"
+
+	if err := os.WriteFile(dllsTextFile, []byte(currentContent), 0644); err != nil {
+		return fmt.Errorf("failed to update dlls.txt: %v", err)
+	}
+
+	debug.Printf("Added libSiliconPatch.dll to dlls.txt")
+	return nil
+}
+
+// disableLibSiliconPatchInDlls removes libSiliconPatch.dll from dlls.txt
+func disableLibSiliconPatchInDlls() error {
+	if paths.TurtlewowPath == "" {
+		return fmt.Errorf("TurtleWoW path not set")
+	}
+
+	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
+	
+	if !utils.PathExists(dllsTextFile) {
+		debug.Printf("dlls.txt not found, nothing to remove")
+		return nil
+	}
+
+	content, err := os.ReadFile(dllsTextFile)
+	if err != nil {
+		return fmt.Errorf("failed to read dlls.txt: %v", err)
+	}
+
+	lines := strings.Split(string(content), "\n")
+	filteredLines := make([]string, 0, len(lines))
+
+	for _, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
+		if trimmedLine != "libSiliconPatch.dll" {
+			filteredLines = append(filteredLines, line)
+		}
+	}
+
+	updatedContent := strings.Join(filteredLines, "\n")
+	if err := os.WriteFile(dllsTextFile, []byte(updatedContent), 0644); err != nil {
+		return fmt.Errorf("failed to update dlls.txt: %v", err)
+	}
+
+	debug.Printf("Removed libSiliconPatch.dll from dlls.txt")
 	return nil
 }

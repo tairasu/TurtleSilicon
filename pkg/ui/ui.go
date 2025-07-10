@@ -1,7 +1,9 @@
 package ui
 
 import (
+	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/paths"
+	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/utils"
 
 	"fyne.io/fyne/v2"
@@ -34,6 +36,18 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 
 	// Check default CrossOver path
 	paths.CheckDefaultCrossOverPath()
+
+	// Check graphics settings presence and set default state
+	patching.CheckGraphicsSettingsPresence()
+
+	// Load graphics settings from Config.wtf and update UI
+	if err := patching.LoadGraphicsSettingsFromConfig(); err != nil {
+		// Log error but continue - this is not critical for app startup
+		debug.Printf("Warning: failed to load graphics settings from Config.wtf: %v", err)
+	} else {
+		// Refresh checkbox states to reflect loaded settings
+		refreshGraphicsSettingsCheckboxes()
+	}
 
 	// Create header, main content and bottom bar
 	headerContent := createHeaderContainer()

@@ -73,7 +73,7 @@ func createOptionsComponents() {
 			debug.Printf("Successfully applied recommended settings")
 			// Show success dialog if we have a window reference
 			if currentWindow != nil {
-				dialog.ShowInformation("Success", "Recommended graphics settings have been applied to Config.wtf", currentWindow)
+				dialog.ShowInformation("Success", "Recommended graphics settings have been applied", currentWindow)
 			}
 			// Update button state
 			updateRecommendedSettingsButton()
@@ -91,6 +91,9 @@ func createOptionsComponents() {
 
 	// Create Wine registry Option-as-Alt buttons and status
 	createWineRegistryComponents()
+
+	// Create graphics settings components
+	createGraphicsSettingsComponents()
 
 	// Load environment variables from preferences
 	if prefs.EnvironmentVariables != "" {
@@ -464,6 +467,190 @@ func showRecommendedSettingsHelpPopup() {
 	windowSize := currentWindow.Content().Size()
 	popupWidth := windowSize.Width * 3 / 4
 	popupHeight := windowSize.Height * 3 / 4
+
+	// Create the help popup
+	helpPopup := widget.NewModalPopUp(container.NewPadded(helpContentContainer), currentWindow.Canvas())
+	helpPopup.Resize(fyne.NewSize(popupWidth, popupHeight))
+
+	// Set the OK button action to hide the help popup
+	okButton.OnTapped = func() {
+		helpPopup.Hide()
+	}
+
+	helpPopup.Show()
+}
+
+// createGraphicsSettingsComponents creates all graphics settings checkboxes and buttons
+func createGraphicsSettingsComponents() {
+	// Load preferences for initial values
+	prefs, _ := utils.LoadPrefs()
+
+	// Create Reduce Terrain Distance setting with help button
+	reduceTerrainDistanceCheckbox = widget.NewCheck("", func(checked bool) {
+		prefs, _ := utils.LoadPrefs()
+		prefs.ReduceTerrainDistance = checked
+		utils.SavePrefs(prefs)
+		debug.Printf("Reduce terrain distance: %v", checked)
+		updateApplyGraphicsSettingsButton()
+	})
+	reduceTerrainDistanceCheckbox.SetChecked(prefs.ReduceTerrainDistance)
+
+	reduceTerrainDistanceHelpButton = widget.NewButton("?", func() {
+		showGraphicsSettingHelpPopup("Reduce Terrain Distance", "Sets the draw distance to the lowest setting. This will drastically increase your FPS", "High Performance Impact")
+	})
+	reduceTerrainDistanceHelpButton.Importance = widget.MediumImportance
+
+	// Create Set Multisample to 2x setting with help button
+	setMultisampleTo2xCheckbox = widget.NewCheck("", func(checked bool) {
+		prefs, _ := utils.LoadPrefs()
+		prefs.SetMultisampleTo2x = checked
+		utils.SavePrefs(prefs)
+		debug.Printf("Set multisample to 2x: %v", checked)
+		updateApplyGraphicsSettingsButton()
+	})
+	setMultisampleTo2xCheckbox.SetChecked(prefs.SetMultisampleTo2x)
+
+	setMultisampleTo2xHelpButton = widget.NewButton("?", func() {
+		showGraphicsSettingHelpPopup("Set Multisample to 2x", "Might reduce your FPS slightly on lower end machines, but makes sure the portraits load properly.", "Medium Performance Impact")
+	})
+	setMultisampleTo2xHelpButton.Importance = widget.MediumImportance
+
+	// Create Set Shadow LOD to 0 setting with help button
+	setShadowLOD0Checkbox = widget.NewCheck("", func(checked bool) {
+		prefs, _ := utils.LoadPrefs()
+		prefs.SetShadowLOD0 = checked
+
+		// Track if user manually disabled this setting
+		if !checked {
+			prefs.UserDisabledShadowLOD = true
+		} else {
+			prefs.UserDisabledShadowLOD = false
+		}
+
+		utils.SavePrefs(prefs)
+		debug.Printf("Set shadow LOD to 0: %v (user manually changed)", checked)
+		updateApplyGraphicsSettingsButton()
+	})
+	setShadowLOD0Checkbox.SetChecked(prefs.SetShadowLOD0)
+
+	setShadowLOD0HelpButton = widget.NewButton("?", func() {
+		showGraphicsSettingHelpPopup("Set Shadow LOD to 0", "Turns off all shadows. This will give you ~10% more FPS.", "High Performance Impact")
+	})
+	setShadowLOD0HelpButton.Importance = widget.MediumImportance
+
+	// Create Enable libSiliconPatch setting with help button
+	libSiliconPatchCheckbox = widget.NewCheck("", func(checked bool) {
+		prefs, _ := utils.LoadPrefs()
+		prefs.EnableLibSiliconPatch = checked
+
+		// Track if user manually disabled this setting
+		if !checked {
+			prefs.UserDisabledLibSiliconPatch = true
+		} else {
+			prefs.UserDisabledLibSiliconPatch = false
+		}
+
+		utils.SavePrefs(prefs)
+		debug.Printf("Enable libSiliconPatch: %v (user manually changed)", checked)
+		updateApplyGraphicsSettingsButton()
+	})
+	libSiliconPatchCheckbox.SetChecked(prefs.EnableLibSiliconPatch)
+
+	libSiliconPatchHelpButton = widget.NewButton("?", func() {
+		showGraphicsSettingHelpPopup("Enable libSiliconPatch", "Hooks into the WoW process and replaces slow X87 instructions with SSE2 instructions that Rosetta can translate much quicker, resulting in an increase in FPS (2x or more). May potentially cause graphical bugs.", "Very High Performance Impact")
+	})
+	libSiliconPatchHelpButton.Importance = widget.MediumImportance
+
+	applyGraphicsSettingsButton = widget.NewButton("Apply Graphics Settings", func() {
+		err := patching.ApplyGraphicsSettings(currentWindow)
+		if err != nil {
+			debug.Printf("Failed to apply graphics settings: %v", err)
+			if currentWindow != nil {
+				dialog.ShowError(fmt.Errorf("failed to apply graphics settings: %v", err), currentWindow)
+			}
+		} else {
+			debug.Printf("Successfully applied graphics settings")
+			if currentWindow != nil {
+				dialog.ShowInformation("Success", "Graphics settings have been applied", currentWindow)
+			}
+			// Refresh checkboxes to reflect current state
+			refreshGraphicsSettingsCheckboxes()
+		}
+	})
+	applyGraphicsSettingsButton.Importance = widget.MediumImportance
+
+	// Initialize button state
+	updateApplyGraphicsSettingsButton()
+}
+
+// updateApplyGraphicsSettingsButton updates the state of the apply graphics settings button
+func updateApplyGraphicsSettingsButton() {
+	if applyGraphicsSettingsButton == nil {
+		return
+	}
+
+	// Always enable the button since we need to handle both adding and removing settings
+	applyGraphicsSettingsButton.Enable()
+	applyGraphicsSettingsButton.SetText("Apply Changes")
+}
+
+// refreshGraphicsSettingsCheckboxes updates the checkbox states from current preferences
+func refreshGraphicsSettingsCheckboxes() {
+	prefs, _ := utils.LoadPrefs()
+
+	if reduceTerrainDistanceCheckbox != nil {
+		reduceTerrainDistanceCheckbox.SetChecked(prefs.ReduceTerrainDistance)
+	}
+	if setMultisampleTo2xCheckbox != nil {
+		setMultisampleTo2xCheckbox.SetChecked(prefs.SetMultisampleTo2x)
+	}
+	if setShadowLOD0Checkbox != nil {
+		setShadowLOD0Checkbox.SetChecked(prefs.SetShadowLOD0)
+	}
+	if libSiliconPatchCheckbox != nil {
+		libSiliconPatchCheckbox.SetChecked(prefs.EnableLibSiliconPatch)
+	}
+
+	// Update the apply button state
+	updateApplyGraphicsSettingsButton()
+}
+
+// showGraphicsSettingHelpPopup shows a help popup for a specific graphics setting
+func showGraphicsSettingHelpPopup(title, description, impact string) {
+	if currentWindow == nil {
+		return
+	}
+
+	// Create help content
+	helpTitle := widget.NewRichTextFromMarkdown("# " + title)
+
+	descriptionLabel := widget.NewLabel(description)
+	descriptionLabel.Wrapping = fyne.TextWrapWord
+
+	impactLabel := widget.NewLabel(impact)
+	impactLabel.TextStyle = fyne.TextStyle{Bold: true}
+
+	// Create OK button
+	okButton := widget.NewButton("OK", func() {
+		// This will be set when the popup is created
+	})
+	okButton.Importance = widget.MediumImportance
+
+	// Create help content container
+	helpContentContainer := container.NewVBox(
+		container.NewCenter(helpTitle),
+		widget.NewSeparator(),
+		descriptionLabel,
+		widget.NewSeparator(),
+		impactLabel,
+		widget.NewSeparator(),
+		container.NewCenter(okButton),
+	)
+
+	// Calculate popup size
+	windowSize := currentWindow.Content().Size()
+	popupWidth := windowSize.Width * 2 / 3
+	popupHeight := windowSize.Height / 2
 
 	// Create the help popup
 	helpPopup := widget.NewModalPopUp(container.NewPadded(helpContentContainer), currentWindow.Canvas())
