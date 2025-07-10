@@ -159,11 +159,11 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 
 	// Check user's preference for libSiliconPatch and shadowLOD
 	prefs, _ := utils.LoadPrefs()
-	
+
 	// Enable by default unless user has explicitly disabled them
 	shouldEnableLibSiliconPatch := true
 	shouldEnableShadowLOD := true
-	
+
 	// If user has manually disabled these settings, respect their choice
 	if prefs.UserDisabledLibSiliconPatch {
 		shouldEnableLibSiliconPatch = false
@@ -172,7 +172,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		// Enable by default and update preferences
 		prefs.EnableLibSiliconPatch = true
 	}
-	
+
 	if prefs.UserDisabledShadowLOD {
 		shouldEnableShadowLOD = false
 		debug.Printf("shadowLOD disabled by user choice")
@@ -180,7 +180,7 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		// Enable by default and update preferences
 		prefs.SetShadowLOD0 = true
 	}
-	
+
 	// Save updated preferences
 	utils.SavePrefs(prefs)
 
@@ -676,13 +676,13 @@ func ApplyGraphicsSettings(myWindow fyne.Window) error {
 	} else {
 		configText = removeConfigSetting(configText, "farclip")
 	}
-	
+
 	if prefs.SetMultisampleTo2x {
 		configText = updateOrAddConfigSetting(configText, "gxMultisample", "2")
 	} else {
 		configText = removeConfigSetting(configText, "gxMultisample")
 	}
-	
+
 	if prefs.SetShadowLOD0 {
 		configText = updateOrAddConfigSetting(configText, "shadowLOD", "0")
 	} else {
@@ -715,7 +715,7 @@ func ApplyGraphicsSettings(myWindow fyne.Window) error {
 // CheckGraphicsSettings checks if the graphics settings are correctly applied in Config.wtf
 func CheckGraphicsSettings() (bool, bool, bool) {
 	prefs, _ := utils.LoadPrefs()
-	
+
 	if paths.TurtlewowPath == "" {
 		return false, false, false
 	}
@@ -732,7 +732,7 @@ func CheckGraphicsSettings() (bool, bool, bool) {
 	}
 
 	configText := string(content)
-	
+
 	terrainCorrect := !prefs.ReduceTerrainDistance || isConfigSettingCorrect(configText, "farclip", "177")
 	multisampleCorrect := !prefs.SetMultisampleTo2x || isConfigSettingCorrect(configText, "gxMultisample", "2")
 	shadowCorrect := !prefs.SetShadowLOD0 || isConfigSettingCorrect(configText, "shadowLOD", "0")
@@ -771,13 +771,13 @@ func LoadGraphicsSettingsFromConfig() error {
 	prefs.ReduceTerrainDistance = isConfigSettingCorrect(configText, "farclip", "177")
 	prefs.SetMultisampleTo2x = isConfigSettingCorrect(configText, "gxMultisample", "2")
 	prefs.SetShadowLOD0 = isConfigSettingCorrect(configText, "shadowLOD", "0")
-	
+
 	// Check libSiliconPatch status (DLL exists and enabled in dlls.txt)
 	libSiliconPatchPath := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
 	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
 	libSiliconPatchExists := utils.PathExists(libSiliconPatchPath)
 	libSiliconPatchEnabled := false
-	
+
 	if libSiliconPatchExists && utils.PathExists(dllsTextFile) {
 		if dllsContent, err := os.ReadFile(dllsTextFile); err == nil {
 			libSiliconPatchEnabled = strings.Contains(string(dllsContent), "libSiliconPatch.dll")
@@ -790,7 +790,7 @@ func LoadGraphicsSettingsFromConfig() error {
 		return fmt.Errorf("failed to save preferences: %v", err)
 	}
 
-	debug.Printf("Loaded graphics settings from Config.wtf: terrain=%v, multisample=%v, shadow=%v, libSiliconPatch=%v", 
+	debug.Printf("Loaded graphics settings from Config.wtf: terrain=%v, multisample=%v, shadow=%v, libSiliconPatch=%v",
 		prefs.ReduceTerrainDistance, prefs.SetMultisampleTo2x, prefs.SetShadowLOD0, prefs.EnableLibSiliconPatch)
 
 	return nil
@@ -804,10 +804,10 @@ func CheckGraphicsSettingsPresence() {
 
 	libSiliconPatchPath := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
 	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
-	
+
 	// Check if libSiliconPatch.dll exists
 	libSiliconPatchExists := utils.PathExists(libSiliconPatchPath)
-	
+
 	// Check if it's enabled in dlls.txt
 	libSiliconPatchEnabled := false
 	if utils.PathExists(dllsTextFile) {
@@ -816,13 +816,13 @@ func CheckGraphicsSettingsPresence() {
 			libSiliconPatchEnabled = strings.Contains(fileContent, "libSiliconPatch.dll")
 		}
 	}
-	
+
 	// Check if shadowLOD is currently applied
 	shadowLODApplied := CheckShadowLODSetting()
-	
+
 	// Load current preferences
 	prefs, _ := utils.LoadPrefs()
-	
+
 	// Handle libSiliconPatch preference detection
 	if libSiliconPatchExists {
 		if libSiliconPatchEnabled && !prefs.EnableLibSiliconPatch {
@@ -834,7 +834,7 @@ func CheckGraphicsSettingsPresence() {
 			debug.Printf("libSiliconPatch disabled in dlls.txt but user preference is enabled - keeping user preference")
 		}
 	}
-	
+
 	// Handle shadowLOD preference detection - enable by default if currently applied
 	if shadowLODApplied && !prefs.SetShadowLOD0 {
 		// shadowLOD is currently applied but user preference says disabled - likely first run detection
@@ -844,11 +844,11 @@ func CheckGraphicsSettingsPresence() {
 		// shadowLOD not applied but user preference says enabled - respect user choice
 		debug.Printf("shadowLOD not applied but user preference is enabled - keeping user preference")
 	}
-	
+
 	// Save any changes
 	utils.SavePrefs(prefs)
-	
-	debug.Printf("Graphics settings detection: libSiliconPatch exists=%v, enabled_in_dlls=%v, user_setting=%v; shadowLOD applied=%v, user_setting=%v", 
+
+	debug.Printf("Graphics settings detection: libSiliconPatch exists=%v, enabled_in_dlls=%v, user_setting=%v; shadowLOD applied=%v, user_setting=%v",
 		libSiliconPatchExists, libSiliconPatchEnabled, prefs.EnableLibSiliconPatch, shadowLODApplied, prefs.SetShadowLOD0)
 }
 
@@ -897,7 +897,7 @@ func disableLibSiliconPatchInDlls() error {
 	}
 
 	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
-	
+
 	if !utils.PathExists(dllsTextFile) {
 		debug.Printf("dlls.txt not found, nothing to remove")
 		return nil

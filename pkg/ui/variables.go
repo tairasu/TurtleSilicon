@@ -46,12 +46,12 @@ var (
 	envVarsEntry *widget.Entry
 
 	// Graphics settings checkboxes
-	reduceTerrainDistanceCheckbox   *widget.Check
-	setMultisampleTo2xCheckbox      *widget.Check
-	setShadowLOD0Checkbox           *widget.Check
-	libSiliconPatchCheckbox         *widget.Check
-	applyGraphicsSettingsButton     *widget.Button
-	
+	reduceTerrainDistanceCheckbox *widget.Check
+	setMultisampleTo2xCheckbox    *widget.Check
+	setShadowLOD0Checkbox         *widget.Check
+	libSiliconPatchCheckbox       *widget.Check
+	applyGraphicsSettingsButton   *widget.Button
+
 	// Graphics settings help buttons
 	reduceTerrainDistanceHelpButton *widget.Button
 	setMultisampleTo2xHelpButton    *widget.Button

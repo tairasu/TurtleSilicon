@@ -2,8 +2,8 @@ package ui
 
 import (
 	"turtlesilicon/pkg/debug"
-	"turtlesilicon/pkg/paths"
 	"turtlesilicon/pkg/patching"
+	"turtlesilicon/pkg/paths"
 	"turtlesilicon/pkg/utils"
 
 	"fyne.io/fyne/v2"

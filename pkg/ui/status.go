@@ -98,12 +98,12 @@ func updateTurtleWoWStatus() {
 			if fileContent, err := os.ReadFile(dllsTextFile); err == nil {
 				contentStr := string(fileContent)
 				winerosettaPresent := strings.Contains(contentStr, "winerosetta.dll")
-				
+
 				// Check if libSiliconPatch should be present based on user preference
 				prefs, _ := utils.LoadPrefs()
 				libSiliconPatchRequired := prefs.EnableLibSiliconPatch
 				libSiliconPatchPresent := strings.Contains(contentStr, "libSiliconPatch.dll")
-				
+
 				// Validate dlls.txt: winerosetta must be present, libSiliconPatch based on setting
 				if winerosettaPresent && (!libSiliconPatchRequired || libSiliconPatchPresent) {
 					dllsFileValid = true

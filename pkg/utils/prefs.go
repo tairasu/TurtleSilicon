@@ -16,16 +16,16 @@ type UserPrefs struct {
 	EnableVanillaTweaks     bool   `json:"enable_vanilla_tweaks"`
 	RemapOptionAsAlt        bool   `json:"remap_option_as_alt"`
 	AutoDeleteWdb           bool   `json:"auto_delete_wdb"`
-	
+
 	// Graphics settings
-	ReduceTerrainDistance    bool `json:"reduce_terrain_distance"`
-	SetMultisampleTo2x       bool `json:"set_multisample_to_2x"`
-	SetShadowLOD0            bool `json:"set_shadow_lod_0"`
-	EnableLibSiliconPatch    bool `json:"enable_lib_silicon_patch"`
-	
+	ReduceTerrainDistance bool `json:"reduce_terrain_distance"`
+	SetMultisampleTo2x    bool `json:"set_multisample_to_2x"`
+	SetShadowLOD0         bool `json:"set_shadow_lod_0"`
+	EnableLibSiliconPatch bool `json:"enable_lib_silicon_patch"`
+
 	// Tracking whether user has manually disabled these settings
-	UserDisabledShadowLOD        bool `json:"user_disabled_shadow_lod"`
-	UserDisabledLibSiliconPatch  bool `json:"user_disabled_lib_silicon_patch"`
+	UserDisabledShadowLOD       bool `json:"user_disabled_shadow_lod"`
+	UserDisabledLibSiliconPatch bool `json:"user_disabled_lib_silicon_patch"`
 }
 
 func getPrefsPath() (string, error) {
