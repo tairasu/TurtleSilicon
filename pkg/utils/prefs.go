@@ -16,6 +16,7 @@ type UserPrefs struct {
 	EnableVanillaTweaks     bool   `json:"enable_vanilla_tweaks"`
 	RemapOptionAsAlt        bool   `json:"remap_option_as_alt"`
 	AutoDeleteWdb           bool   `json:"auto_delete_wdb"`
+	EnableMetalHud          bool   `json:"enable_metal_hud"`
 
 	// Graphics settings
 	ReduceTerrainDistance bool `json:"reduce_terrain_distance"`

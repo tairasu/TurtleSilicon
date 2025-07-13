@@ -16,7 +16,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 )
 
-var EnableMetalHud = true       // Default to enabled
+var EnableMetalHud = false      // Default to disabled
 var CustomEnvVars = ""          // Custom environment variables
 var EnableVanillaTweaks = false // Default to disabled
 var AutoDeleteWdb = false       // Default to disabled

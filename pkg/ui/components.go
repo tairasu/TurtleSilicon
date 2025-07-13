@@ -25,9 +25,14 @@ func createOptionsComponents() {
 
 	metalHudCheckbox = widget.NewCheck("Enable Metal Hud (show FPS)", func(checked bool) {
 		launcher.EnableMetalHud = checked
+		// Save to preferences
+		prefs, _ := utils.LoadPrefs()
+		prefs.EnableMetalHud = checked
+		utils.SavePrefs(prefs)
 		debug.Printf("Metal HUD enabled: %v", launcher.EnableMetalHud)
 	})
-	metalHudCheckbox.SetChecked(launcher.EnableMetalHud)
+	metalHudCheckbox.SetChecked(prefs.EnableMetalHud)
+	launcher.EnableMetalHud = prefs.EnableMetalHud
 
 	showTerminalCheckbox = widget.NewCheck("Show Terminal", func(checked bool) {
 		// Save to preferences
