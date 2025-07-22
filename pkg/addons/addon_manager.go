@@ -407,7 +407,7 @@ func (am *AddonManager) createAddonManagerPopup() {
 	// Add keyboard shortcut for Escape key
 	canvas := am.window.Canvas()
 	originalOnTypedKey := canvas.OnTypedKey()
-	
+
 	closeAction := func() {
 		// Restore original key handler before closing
 		canvas.SetOnTypedKey(originalOnTypedKey)
@@ -438,7 +438,7 @@ func (am *AddonManager) createAddonsList() *container.Scroll {
 	list := container.NewVBox()
 
 	filteredAddons := am.getFilteredAddons()
-	
+
 	for i := range filteredAddons {
 		addonCopy := filteredAddons[i]
 		addonCard := am.createAddonCard(&addonCopy)
@@ -467,7 +467,7 @@ func (am *AddonManager) getFilteredAddons() []Addon {
 	if !am.showOnlyGit {
 		return am.addons
 	}
-	
+
 	var filteredAddons []Addon
 	for _, addon := range am.addons {
 		if addon.HasGitRepo {
@@ -481,10 +481,10 @@ func (am *AddonManager) refreshAddonList() {
 	if am.currentPopup == nil || am.addonsList == nil {
 		return
 	}
-	
+
 	// Create new filtered list content
 	newAddonsList := am.createAddonsList()
-	
+
 	// Replace the content of the existing scroll container
 	am.addonsList.Content = newAddonsList.Content
 	am.addonsList.Refresh()
@@ -567,7 +567,7 @@ func (am *AddonManager) createAddonCard(addon *Addon) *fyne.Container {
 		} else {
 			gitText = "GIT"
 		}
-		
+
 		gitButton = widget.NewButton(gitText, func() {})
 		gitButton.Importance = widget.LowImportance
 		gitButton.Disable()
@@ -596,7 +596,7 @@ func (am *AddonManager) createAddonCard(addon *Addon) *fyne.Container {
 
 	var buttonsContainer *fyne.Container
 	var buttons []fyne.CanvasObject
-	
+
 	if gitButton != nil {
 		buttons = append(buttons, gitButton)
 	}
@@ -604,7 +604,7 @@ func (am *AddonManager) createAddonCard(addon *Addon) *fyne.Container {
 		buttons = append(buttons, infoButton)
 	}
 	buttons = append(buttons, updateButton, deleteButton)
-	
+
 	buttonsContainer = container.NewHBox(buttons...)
 
 	buttonsWithMargin := container.NewPadded(buttonsContainer)

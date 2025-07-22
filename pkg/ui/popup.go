@@ -130,10 +130,10 @@ func showOptionsPopup() {
 		// This will be set when the popup is created
 	})
 	closeButton.Importance = widget.LowImportance
-	
+
 	// Force square dimensions by setting both min size and resize
 	closeButton.Resize(fyne.NewSize(24, 24))
-	closeButton.Move(fyne.NewPos(8, 8))  // Add small margin from edge
+	closeButton.Move(fyne.NewPos(8, 8)) // Add small margin from edge
 	closeButton.Resize(fyne.NewSize(30, 30))
 
 	// Create top bar with close button on left and title in center
@@ -156,7 +156,7 @@ func showOptionsPopup() {
 
 	// Create a modal popup
 	popup := widget.NewModalPopUp(popupContent, currentWindow.Canvas())
-	
+
 	// Make it truly fullscreen like addon delete/add operations
 	canvasSize := currentWindow.Canvas().Size()
 	popup.Resize(canvasSize)
@@ -164,7 +164,7 @@ func showOptionsPopup() {
 	// Add keyboard shortcut for Escape key
 	canvas := currentWindow.Canvas()
 	originalOnTypedKey := canvas.OnTypedKey()
-	
+
 	// Set the close button action to hide the popup
 	closeAction := func() {
 		// Restore original key handler before closing
@@ -176,7 +176,7 @@ func showOptionsPopup() {
 			popup.Hide()
 		}
 	}
-	
+
 	closeButton.OnTapped = closeAction
 
 	canvas.SetOnTypedKey(func(key *fyne.KeyEvent) {
@@ -327,10 +327,10 @@ func showTroubleshootingPopup() {
 	// Create square close button without text padding
 	troubleshootingCloseButton = widget.NewButton("✕", func() {})
 	troubleshootingCloseButton.Importance = widget.LowImportance
-	
+
 	// Force square dimensions by setting both min size and resize
 	troubleshootingCloseButton.Resize(fyne.NewSize(24, 24))
-	troubleshootingCloseButton.Move(fyne.NewPos(8, 8))  // Add small margin from edge
+	troubleshootingCloseButton.Move(fyne.NewPos(8, 8)) // Add small margin from edge
 	troubleshootingCloseButton.Resize(fyne.NewSize(30, 30))
 
 	// Create top bar with close button on left and title in center
@@ -351,7 +351,7 @@ func showTroubleshootingPopup() {
 	)
 
 	popup := widget.NewModalPopUp(popupContent, currentWindow.Canvas())
-	
+
 	// Make it truly fullscreen like addon delete/add operations
 	canvasSize := currentWindow.Canvas().Size()
 	popup.Resize(canvasSize)
@@ -359,13 +359,13 @@ func showTroubleshootingPopup() {
 	// Add keyboard shortcut for Escape key
 	canvas := currentWindow.Canvas()
 	originalOnTypedKey := canvas.OnTypedKey()
-	
+
 	closeAction := func() {
 		// Restore original key handler before closing
 		canvas.SetOnTypedKey(originalOnTypedKey)
 		popup.Hide()
 	}
-	
+
 	troubleshootingCloseButton.OnTapped = closeAction
 
 	canvas.SetOnTypedKey(func(key *fyne.KeyEvent) {
