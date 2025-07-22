@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"turtlesilicon/pkg/addons"
 	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/launcher"
 	"turtlesilicon/pkg/patching"
@@ -190,9 +191,16 @@ func createBottomBar(myWindow fyne.Window) fyne.CanvasObject {
 		container.NewCenter(playButtonText),
 	)
 
+	// Addons button
+	addonsButton := widget.NewButton("Addons", func() {
+		addonManager := addons.NewAddonManager(myWindow)
+		addonManager.ShowAddonManager()
+	})
+
 	leftButtons := container.NewHBox(
 		optionsButton,
 		troubleshootingButton,
+		addonsButton,
 		githubButton,
 	)
 

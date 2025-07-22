@@ -121,31 +121,54 @@ func showOptionsPopup() {
 	// Set tab location to top
 	tabs.SetTabLocation(container.TabLocationTop)
 
-	// Create close button
-	closeButton := widget.NewButton("Close", func() {
+	// Create popup title
+	optionsTitle := widget.NewLabel("Options")
+	optionsTitle.TextStyle = fyne.TextStyle{Bold: true}
+
+	// Create square close button without text padding
+	closeButton := widget.NewButton("✕", func() {
 		// This will be set when the popup is created
 	})
+	closeButton.Importance = widget.LowImportance
+	
+	// Force square dimensions by setting both min size and resize
+	closeButton.Resize(fyne.NewSize(24, 24))
+	closeButton.Move(fyne.NewPos(8, 8))  // Add small margin from edge
+	closeButton.Resize(fyne.NewSize(30, 30))
+
+	// Create top bar with close button on left and title in center
+	topBar := container.NewBorder(
+		nil,
+		nil,
+		closeButton,
+		nil,
+		container.NewCenter(optionsTitle),
+	)
 
 	// Create the popup content with close button
 	popupContent := container.NewBorder(
-		nil,                              // top
-		container.NewCenter(closeButton), // bottom
-		nil,                              // left
-		nil,                              // right
-		container.NewPadded(tabs),        // center
+		topBar,                    // top
+		nil,                       // bottom
+		nil,                       // left
+		nil,                       // right
+		container.NewPadded(tabs), // center
 	)
-
-	// Get the window size and calculate 2/3 size
-	windowSize := currentWindow.Content().Size()
-	popupWidth := windowSize.Width * 5 / 6
-	popupHeight := windowSize.Height * 9 / 10
 
 	// Create a modal popup
 	popup := widget.NewModalPopUp(popupContent, currentWindow.Canvas())
-	popup.Resize(fyne.NewSize(popupWidth, popupHeight))
+	
+	// Make it truly fullscreen like addon delete/add operations
+	canvasSize := currentWindow.Canvas().Size()
+	popup.Resize(canvasSize)
 
+	// Add keyboard shortcut for Escape key
+	canvas := currentWindow.Canvas()
+	originalOnTypedKey := canvas.OnTypedKey()
+	
 	// Set the close button action to hide the popup
-	closeButton.OnTapped = func() {
+	closeAction := func() {
+		// Restore original key handler before closing
+		canvas.SetOnTypedKey(originalOnTypedKey)
 		if remapOperationInProgress {
 			// Show warning popup instead of closing
 			showRemapWarningPopup()
@@ -153,6 +176,18 @@ func showOptionsPopup() {
 			popup.Hide()
 		}
 	}
+	
+	closeButton.OnTapped = closeAction
+
+	canvas.SetOnTypedKey(func(key *fyne.KeyEvent) {
+		if key.Name == fyne.KeyEscape {
+			closeAction()
+			return
+		}
+		if originalOnTypedKey != nil {
+			originalOnTypedKey(key)
+		}
+	})
 
 	popup.Show()
 }
@@ -285,26 +320,63 @@ func showTroubleshootingPopup() {
 
 	scrollContainer := container.NewScroll(content)
 
-	troubleshootingCloseButton = widget.NewButton("Close", func() {})
+	// Create popup title
+	troubleshootingPopupTitle := widget.NewLabel("Troubleshooting")
+	troubleshootingPopupTitle.TextStyle = fyne.TextStyle{Bold: true}
+
+	// Create square close button without text padding
+	troubleshootingCloseButton = widget.NewButton("✕", func() {})
+	troubleshootingCloseButton.Importance = widget.LowImportance
+	
+	// Force square dimensions by setting both min size and resize
+	troubleshootingCloseButton.Resize(fyne.NewSize(24, 24))
+	troubleshootingCloseButton.Move(fyne.NewPos(8, 8))  // Add small margin from edge
+	troubleshootingCloseButton.Resize(fyne.NewSize(30, 30))
+
+	// Create top bar with close button on left and title in center
+	topBar := container.NewBorder(
+		nil,
+		nil,
+		troubleshootingCloseButton,
+		nil,
+		container.NewCenter(troubleshootingPopupTitle),
+	)
 
 	popupContent := container.NewBorder(
-		nil, // top
-		container.NewCenter(troubleshootingCloseButton), // bottom
+		topBar,                               // top
+		nil,                                  // bottom
 		nil,                                  // left
 		nil,                                  // right
 		container.NewPadded(scrollContainer), // center
 	)
 
-	windowSize := currentWindow.Content().Size()
-	popupWidth := windowSize.Width * 5 / 6
-	popupHeight := windowSize.Height * 5 / 6
-
 	popup := widget.NewModalPopUp(popupContent, currentWindow.Canvas())
-	popup.Resize(fyne.NewSize(popupWidth, popupHeight))
+	
+	// Make it truly fullscreen like addon delete/add operations
+	canvasSize := currentWindow.Canvas().Size()
+	popup.Resize(canvasSize)
 
-	troubleshootingCloseButton.OnTapped = func() {
+	// Add keyboard shortcut for Escape key
+	canvas := currentWindow.Canvas()
+	originalOnTypedKey := canvas.OnTypedKey()
+	
+	closeAction := func() {
+		// Restore original key handler before closing
+		canvas.SetOnTypedKey(originalOnTypedKey)
 		popup.Hide()
 	}
+	
+	troubleshootingCloseButton.OnTapped = closeAction
+
+	canvas.SetOnTypedKey(func(key *fyne.KeyEvent) {
+		if key.Name == fyne.KeyEscape {
+			closeAction()
+			return
+		}
+		if originalOnTypedKey != nil {
+			originalOnTypedKey(key)
+		}
+	})
 
 	popup.Show()
 }
