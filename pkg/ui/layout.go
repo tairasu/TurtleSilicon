@@ -17,7 +17,6 @@ func createHeaderContainer() fyne.CanvasObject {
 		debug.Printf("Version title button clicked")
 	})
 
-	// Make it look like a proper button with medium importance for good visibility
 	versionTitleButton.Importance = widget.MediumImportance
 
 	versionTitleContainer := container.NewStack(
