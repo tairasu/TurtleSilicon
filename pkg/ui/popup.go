@@ -157,7 +157,6 @@ func showOptionsPopup() {
 	// Create a modal popup
 	popup := widget.NewModalPopUp(popupContent, currentWindow.Canvas())
 
-	// Make it truly fullscreen like addon delete/add operations
 	canvasSize := currentWindow.Canvas().Size()
 	popup.Resize(canvasSize)
 
@@ -338,7 +337,6 @@ func showTroubleshootingPopup() {
 
 	popup := widget.NewModalPopUp(popupContent, currentWindow.Canvas())
 
-	// Make it truly fullscreen like addon delete/add operations
 	canvasSize := currentWindow.Canvas().Size()
 	popup.Resize(canvasSize)
 
