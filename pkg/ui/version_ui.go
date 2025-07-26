@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"turtlesilicon/pkg/debug"
+	"turtlesilicon/pkg/epochsilicon"
 	"turtlesilicon/pkg/launcher"
 	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/paths"
@@ -543,7 +544,12 @@ func SelectCurrentVersionGamePath(myWindow fyne.Window) {
 		return
 	}
 
-	dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
+	// Create larger folder dialog - 5/6 of window size
+	windowSize := myWindow.Canvas().Size()
+	dialogWidth := windowSize.Width * 5 / 6
+	dialogHeight := windowSize.Height * 5 / 6
+	
+	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err != nil {
 			dialog.ShowError(err, myWindow)
 			return
@@ -581,7 +587,15 @@ func SelectCurrentVersionGamePath(myWindow fyne.Window) {
 		debug.Printf("Game path set for version %s: %s", currentVersion.ID, selectedPath)
 		updateVersionPathLabels()
 		UpdateAllStatuses()
+
+		// For EpochSilicon, check required files and offer to download missing ones
+		if currentVersion.ID == "epochsilicon" {
+			checkEpochSiliconFiles(myWindow, selectedPath)
+		}
 	}, myWindow)
+	
+	folderDialog.Resize(fyne.NewSize(dialogWidth, dialogHeight))
+	folderDialog.Show()
 }
 
 // Version-aware CrossOver path selection
@@ -591,7 +605,12 @@ func SelectCurrentVersionCrossOverPath(myWindow fyne.Window) {
 		return
 	}
 
-	dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
+	// Create larger folder dialog - 5/6 of window size
+	windowSize := myWindow.Canvas().Size()
+	dialogWidth := windowSize.Width * 5 / 6
+	dialogHeight := windowSize.Height * 5 / 6
+	
+	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err != nil {
 			dialog.ShowError(err, myWindow)
 			return
@@ -630,6 +649,9 @@ func SelectCurrentVersionCrossOverPath(myWindow fyne.Window) {
 		updateVersionPathLabels()
 		UpdateAllStatuses()
 	}, myWindow)
+	
+	folderDialog.Resize(fyne.NewSize(dialogWidth, dialogHeight))
+	folderDialog.Show()
 }
 
 // Version-aware patching
@@ -639,6 +661,33 @@ func PatchCurrentVersion(myWindow fyne.Window) {
 		return
 	}
 
+	// For EpochSilicon, check required files before patching
+	if currentVersion.ID == "epochsilicon" {
+		missingFiles, err := epochsilicon.CheckEpochSiliconFiles(currentVersion.GamePath)
+		if err != nil {
+			dialog.ShowError(err, myWindow)
+			return
+		}
+
+		if len(missingFiles) > 0 {
+			epochsilicon.ShowMissingFilesDialog(myWindow, missingFiles, func() {
+				epochsilicon.DownloadMissingFiles(myWindow, currentVersion.GamePath, missingFiles, func(success bool) {
+					if success {
+						// After successful download, proceed with patching
+						proceedWithPatching(myWindow)
+					}
+				})
+			})
+			return
+		}
+	}
+
+	// Proceed with normal patching
+	proceedWithPatching(myWindow)
+}
+
+// proceedWithPatching performs the actual patching operation
+func proceedWithPatching(myWindow fyne.Window) {
 	patching.PatchVersionGame(myWindow, UpdateAllStatuses, currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch)
 
 	// Update patching status
@@ -679,4 +728,33 @@ func LaunchCurrentVersion(myWindow fyne.Window) {
 		currentVersion.Settings.EnvironmentVariables,
 		currentVersion.Settings.AutoDeleteWdb,
 	)
+}
+
+// checkEpochSiliconFiles checks for required EpochSilicon files and offers to download missing ones
+func checkEpochSiliconFiles(myWindow fyne.Window, gamePath string) {
+	// Always update realmlist.wtf for EpochSilicon when setting path
+	go func() {
+		if err := epochsilicon.UpdateRealmlistForEpochSilicon(gamePath); err != nil {
+			debug.Printf("Warning: Failed to update realmlist.wtf: %v", err)
+		}
+	}()
+
+	// Check for missing files
+	missingFiles, err := epochsilicon.CheckEpochSiliconFiles(gamePath)
+	if err != nil {
+		dialog.ShowError(err, myWindow)
+		return
+	}
+
+	if len(missingFiles) > 0 {
+		epochsilicon.ShowMissingFilesDialog(myWindow, missingFiles, func() {
+			epochsilicon.DownloadMissingFiles(myWindow, gamePath, missingFiles, func(success bool) {
+				if success {
+					dialog.ShowInformation("Download Complete", "All Project Epoch files have been downloaded successfully!", myWindow)
+					// Refresh the UI to reflect any changes
+					UpdateAllStatuses()
+				}
+			})
+		})
+	}
 }
