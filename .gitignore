@@ -1,4 +1,7 @@
 .DS_Store
+.idea/
+.vs/
+vendor/
 TurtleSilicon.*
 TurtleSilicon.app/Contents/MacOS/turtlesilicon
 *.dmg
