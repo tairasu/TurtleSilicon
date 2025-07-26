@@ -55,15 +55,17 @@ func createHeaderContainer() fyne.CanvasObject {
 	return headerContainer
 }
 
+const iconPath = "img/icons/"
+
 // getVersionIconPath returns the appropriate icon path for the given version
 func getVersionIconPath(versionID string) string {
 	switch versionID {
 	case "epochsilicon":
-		return "img/project-epoch.png"
+		return iconPath + "project-epoch.png"
 	case "turtlesilicon":
-		return "Icon.png" // Default TurtleSilicon icon
+		return iconPath + "Default.png" // Default TurtleSilicon icon
 	default:
-		return "Icon.png" // Fallback to default icon for other versions
+		return iconPath + "Default.png" // Fallback to default icon for other versions
 	}
 }
 
@@ -75,7 +77,7 @@ func createLogoContainer() fyne.CanvasObject {
 	if currentVer != nil {
 		iconPath = getVersionIconPath(currentVer.ID)
 	} else {
-		iconPath = "Icon.png" // Default fallback
+		iconPath = iconPath + "Default.png" // Default fallback
 	}
 
 	// Load the version-specific logo
@@ -83,7 +85,7 @@ func createLogoContainer() fyne.CanvasObject {
 	if err != nil {
 		debug.Printf("Warning: could not load logo from %s: %v", iconPath, err)
 		// Try fallback to default icon
-		logoResource, err = fyne.LoadResourceFromPath("Icon.png")
+		logoResource, err = fyne.LoadResourceFromPath(iconPath + "Default.png")
 		if err != nil {
 			debug.Printf("Warning: could not load fallback logo: %v", err)
 		}
@@ -119,7 +121,7 @@ func updateLogoForVersion(versionID string) {
 	if err != nil {
 		debug.Printf("Warning: could not load logo from %s: %v", iconPath, err)
 		// Try fallback to default icon
-		logoResource, err = fyne.LoadResourceFromPath("Icon.png")
+		logoResource, err = fyne.LoadResourceFromPath(iconPath + "Default.png")
 		if err != nil {
 			debug.Printf("Warning: could not load fallback logo: %v", err)
 			return

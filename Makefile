@@ -11,7 +11,7 @@ build-dev:
 	@mkdir -p TurtleSilicon.app/Contents/Resources/winerosetta
 	@cp -R rosettax87/* TurtleSilicon.app/Contents/Resources/rosettax87/
 	@cp -R winerosetta/* TurtleSilicon.app/Contents/Resources/winerosetta/
-	@cp -R Icon.png TurtleSilicon.app/Contents/Resources/
+	@cp -R img/icons/* TurtleSilicon.app/Contents/Resources/img/icons/
 	@echo "Development build complete!"
 
 build: build-dev
@@ -28,9 +28,10 @@ build-release:
 	@echo "Copying additional resources to app bundle..."
 	@mkdir -p TurtleSilicon.app/Contents/Resources/rosettax87
 	@mkdir -p TurtleSilicon.app/Contents/Resources/winerosetta
+	@mkdir -p TurtleSilicon.app/Contents/Resources/img/icons
 	@cp -R rosettax87/* TurtleSilicon.app/Contents/Resources/rosettax87/
 	@cp -R winerosetta/* TurtleSilicon.app/Contents/Resources/winerosetta/
-	@cp -R Icon.png TurtleSilicon.app/Contents/Resources/
+	@cp -R img/icons/* TurtleSilicon.app/Contents/Resources/img/icons/
 	@echo "Stripping additional symbols..."
 	strip -x TurtleSilicon.app/Contents/MacOS/turtlesilicon
 	@echo "Optimized release build complete!"
