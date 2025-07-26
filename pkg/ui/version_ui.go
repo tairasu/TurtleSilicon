@@ -548,7 +548,7 @@ func SelectCurrentVersionGamePath(myWindow fyne.Window) {
 	windowSize := myWindow.Canvas().Size()
 	dialogWidth := windowSize.Width * 5 / 6
 	dialogHeight := windowSize.Height * 5 / 6
-	
+
 	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err != nil {
 			dialog.ShowError(err, myWindow)
@@ -593,7 +593,7 @@ func SelectCurrentVersionGamePath(myWindow fyne.Window) {
 			checkEpochSiliconFiles(myWindow, selectedPath)
 		}
 	}, myWindow)
-	
+
 	folderDialog.Resize(fyne.NewSize(dialogWidth, dialogHeight))
 	folderDialog.Show()
 }
@@ -609,7 +609,7 @@ func SelectCurrentVersionCrossOverPath(myWindow fyne.Window) {
 	windowSize := myWindow.Canvas().Size()
 	dialogWidth := windowSize.Width * 5 / 6
 	dialogHeight := windowSize.Height * 5 / 6
-	
+
 	folderDialog := dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err != nil {
 			dialog.ShowError(err, myWindow)
@@ -649,7 +649,7 @@ func SelectCurrentVersionCrossOverPath(myWindow fyne.Window) {
 		updateVersionPathLabels()
 		UpdateAllStatuses()
 	}, myWindow)
-	
+
 	folderDialog.Resize(fyne.NewSize(dialogWidth, dialogHeight))
 	folderDialog.Show()
 }
