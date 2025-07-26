@@ -1,9 +1,7 @@
 package ui
 
 import (
-	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"turtlesilicon/pkg/patching"
@@ -22,8 +20,7 @@ var (
 
 // UpdateAllStatuses updates all UI components based on current application state
 func UpdateAllStatuses() {
-	updateCrossoverStatus()
-	updateTurtleWoWStatus()
+	updateVersionStatus()
 	updatePlayButtonState()
 	updateServiceStatus()
 
@@ -36,6 +33,97 @@ func UpdateAllStatuses() {
 	if applyRecommendedSettingsButton != nil {
 		updateRecommendedSettingsButton()
 	}
+}
+
+// updateVersionStatus updates status for the current version
+func updateVersionStatus() {
+	currentVer := GetCurrentVersion()
+	if currentVer == nil {
+		// Fall back to old system
+		updateCrossoverStatus()
+		updateTurtleWoWStatus()
+		return
+	}
+
+	// Update CrossOver status for current version
+	if currentVer.CrossOverPath == "" {
+		crossoverPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not set", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+		crossoverStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not Applied", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+		// Disable both CrossOver buttons when path not set
+		if patchCrossOverButton != nil {
+			patchCrossOverButton.Disable()
+		}
+		if unpatchCrossOverButton != nil {
+			unpatchCrossOverButton.Disable()
+		}
+	} else {
+		crossoverPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: currentVer.CrossOverPath, Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
+		wineloader2Path := filepath.Join(currentVer.CrossOverPath, "Contents", "SharedSupport", "CrossOver", "CrossOver-Hosted Application", "wineloader2")
+		if utils.PathExists(wineloader2Path) {
+			crossoverStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Applied", Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
+			gamePatched, _ := paths.GetVersionPatchingStatus(currentVer.ID)
+			paths.SetVersionPatchingStatus(currentVer.ID, gamePatched, true)
+			// Update CrossOver button states - patches applied
+			if patchCrossOverButton != nil {
+				patchCrossOverButton.Disable()
+			}
+			if unpatchCrossOverButton != nil {
+				unpatchCrossOverButton.Enable()
+			}
+		} else {
+			crossoverStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not Applied", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+			gamePatched, _ := paths.GetVersionPatchingStatus(currentVer.ID)
+			paths.SetVersionPatchingStatus(currentVer.ID, gamePatched, false)
+			// Update CrossOver button states - patches not applied
+			if patchCrossOverButton != nil {
+				patchCrossOverButton.Enable()
+			}
+			if unpatchCrossOverButton != nil {
+				unpatchCrossOverButton.Disable()
+			}
+		}
+	}
+	crossoverPathLabel.Refresh()
+	crossoverStatusLabel.Refresh()
+
+	// Update Game status for current version
+	if currentVer.GamePath == "" {
+		turtlewowPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not set", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+		turtlewowStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not Applied", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+		// Disable both buttons when path not set
+		if patchTurtleWoWButton != nil {
+			patchTurtleWoWButton.Disable()
+		}
+		if unpatchTurtleWoWButton != nil {
+			unpatchTurtleWoWButton.Disable()
+		}
+	} else {
+		turtlewowPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: currentVer.GamePath, Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
+
+		// Check if patches are Applied using version-aware checking
+		patchesApplied := patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch)
+		if patchesApplied {
+			turtlewowStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Applied", Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
+			// Update button states - patches applied
+			if patchTurtleWoWButton != nil {
+				patchTurtleWoWButton.Disable()
+			}
+			if unpatchTurtleWoWButton != nil {
+				unpatchTurtleWoWButton.Enable()
+			}
+		} else {
+			turtlewowStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Not Applied", Style: widget.RichTextStyle{ColorName: theme.ColorNameError}}}
+			// Update button states - patches not applied
+			if patchTurtleWoWButton != nil {
+				patchTurtleWoWButton.Enable()
+			}
+			if unpatchTurtleWoWButton != nil {
+				unpatchTurtleWoWButton.Disable()
+			}
+		}
+	}
+	turtlewowPathLabel.Refresh()
+	turtlewowStatusLabel.Refresh()
 }
 
 // updateCrossoverStatus updates CrossOver path and patch status
@@ -84,54 +172,9 @@ func updateTurtleWoWStatus() {
 	} else {
 		turtlewowPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: paths.TurtlewowPath, Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
 
-		// Check if all required files exist
-		winerosettaDllPath := filepath.Join(paths.TurtlewowPath, "winerosetta.dll")
-		d3d9DllPath := filepath.Join(paths.TurtlewowPath, "d3d9.dll")
-		libSiliconPatchDllPath := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
-		rosettaX87DirPath := filepath.Join(paths.TurtlewowPath, "rosettax87")
-		dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
-		rosettaX87ExePath := filepath.Join(rosettaX87DirPath, "rosettax87")
-		libRuntimeRosettaX87Path := filepath.Join(rosettaX87DirPath, "libRuntimeRosettax87")
-
-		dllsFileValid := false
-		if utils.PathExists(dllsTextFile) {
-			if fileContent, err := os.ReadFile(dllsTextFile); err == nil {
-				contentStr := string(fileContent)
-				winerosettaPresent := strings.Contains(contentStr, "winerosetta.dll")
-
-				// Check if libSiliconPatch should be present based on user preference
-				prefs, _ := utils.LoadPrefs()
-				libSiliconPatchRequired := prefs.EnableLibSiliconPatch
-				libSiliconPatchPresent := strings.Contains(contentStr, "libSiliconPatch.dll")
-
-				// Validate dlls.txt: winerosetta must be present, libSiliconPatch based on setting
-				if winerosettaPresent && (!libSiliconPatchRequired || libSiliconPatchPresent) {
-					dllsFileValid = true
-				}
-			}
-		}
-
-		// Check if patched files have the correct size (matches bundled versions)
-		winerosettaDllCorrectSize := utils.CompareFileWithBundledResource(winerosettaDllPath, "winerosetta/winerosetta.dll")
-		d3d9DllCorrectSize := utils.CompareFileWithBundledResource(d3d9DllPath, "winerosetta/d3d9.dll")
-		libSiliconPatchCorrectSize := utils.CompareFileWithBundledResource(libSiliconPatchDllPath, "winerosetta/libSiliconPatch.dll")
-		rosettaX87CorrectSize := utils.CompareFileWithBundledResource(rosettaX87ExePath, "rosettax87/rosettax87")
-		libRuntimeRosettaX87CorrectSize := utils.CompareFileWithBundledResource(libRuntimeRosettaX87Path, "rosettax87/libRuntimeRosettax87")
-
-		// Check if shadowLOD setting is applied (only if user has enabled it in graphics settings)
-		prefs, _ := utils.LoadPrefs()
-		shadowLODRequiredAndApplied := true // Default to true if not required
-		if prefs.SetShadowLOD0 {
-			shadowLODRequiredAndApplied = patching.CheckShadowLODSetting()
-		}
-
-		if utils.PathExists(winerosettaDllPath) && utils.PathExists(d3d9DllPath) && utils.PathExists(libSiliconPatchDllPath) &&
-			utils.DirExists(rosettaX87DirPath) && utils.PathExists(rosettaX87ExePath) &&
-			utils.PathExists(libRuntimeRosettaX87Path) && dllsFileValid &&
-			winerosettaDllCorrectSize && d3d9DllCorrectSize && libSiliconPatchCorrectSize &&
-			rosettaX87CorrectSize && libRuntimeRosettaX87CorrectSize && shadowLODRequiredAndApplied {
-			paths.PatchesAppliedTurtleWoW = true
-		}
+		// Use version-aware checking for legacy fallback
+		patchesApplied := patching.CheckVersionPatchingStatus(paths.TurtlewowPath, true, false) // Assuming legacy is rosetta patching
+		paths.PatchesAppliedTurtleWoW = patchesApplied
 	}
 	turtlewowPathLabel.Refresh()
 
@@ -161,8 +204,27 @@ func updateTurtleWoWStatus() {
 
 // updatePlayButtonState enables/disables play and launch buttons based on current state
 func updatePlayButtonState() {
-	launchEnabled := paths.PatchesAppliedTurtleWoW && paths.PatchesAppliedCrossOver &&
-		paths.TurtlewowPath != "" && paths.CrossoverPath != "" && service.IsServiceRunning()
+	launchEnabled := false
+
+	// Use version-aware checking
+	currentVer := GetCurrentVersion()
+	if currentVer != nil {
+		// Check if both game and CrossOver paths are set
+		gamePatchesApplied := currentVer.GamePath != "" && patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch)
+
+		// Check CrossOver status
+		crossoverPatchesApplied := false
+		if currentVer.CrossOverPath != "" {
+			wineloader2Path := filepath.Join(currentVer.CrossOverPath, "Contents", "SharedSupport", "CrossOver", "CrossOver-Hosted Application", "wineloader2")
+			crossoverPatchesApplied = utils.PathExists(wineloader2Path)
+		}
+
+		launchEnabled = gamePatchesApplied && crossoverPatchesApplied && service.IsServiceRunning()
+	} else {
+		// Fallback to legacy system
+		launchEnabled = paths.PatchesAppliedTurtleWoW && paths.PatchesAppliedCrossOver &&
+			paths.TurtlewowPath != "" && paths.CrossoverPath != "" && service.IsServiceRunning()
+	}
 
 	if launchButton != nil {
 		if launchEnabled {
@@ -239,7 +301,20 @@ func updateServiceStatus() {
 			serviceStatusLabel.Refresh()
 		}
 		if startServiceButton != nil {
-			if paths.TurtlewowPath != "" && paths.PatchesAppliedTurtleWoW {
+			// Check if we can enable the service button - use version-aware checking
+			currentVer := GetCurrentVersion()
+			canStartService := false
+
+			if currentVer != nil && currentVer.GamePath != "" {
+				// Check if patches are applied for current version
+				patchesApplied := patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch)
+				canStartService = patchesApplied
+			} else if paths.TurtlewowPath != "" {
+				// Fallback to legacy system
+				canStartService = paths.PatchesAppliedTurtleWoW
+			}
+
+			if canStartService {
 				startServiceButton.Enable()
 			} else {
 				startServiceButton.Disable()

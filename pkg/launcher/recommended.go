@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"turtlesilicon/pkg/debug"
-	"turtlesilicon/pkg/paths"
+	"turtlesilicon/pkg/version"
 )
 
 // RecommendedSettings contains the recommended graphics settings for optimal performance
@@ -24,12 +24,20 @@ var RecommendedSettings = map[string]string{
 // CheckRecommendedSettings reads the Config.wtf file and checks if all recommended settings are applied
 // Returns true if all settings are correctly applied, false otherwise
 func CheckRecommendedSettings() bool {
-	if paths.TurtlewowPath == "" {
-		debug.Printf("TurtleWoW path not set, cannot check Config.wtf")
+	// Get current version path
+	vm, err := version.LoadVersionManager()
+	if err != nil {
+		debug.Printf("Failed to load version manager: %v", err)
 		return false
 	}
 
-	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+	currentVer, err := vm.GetCurrentVersion()
+	if err != nil || currentVer.GamePath == "" {
+		debug.Printf("Current version game path not set, cannot check Config.wtf")
+		return false
+	}
+
+	configPath := filepath.Join(currentVer.GamePath, "WTF", "Config.wtf")
 
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		debug.Printf("Config.wtf not found at %s", configPath)
@@ -73,11 +81,22 @@ func isSettingCorrect(configText, setting, expectedValue string) bool {
 
 // ApplyRecommendedSettings applies all recommended graphics settings to Config.wtf
 func ApplyRecommendedSettings() error {
-	if paths.TurtlewowPath == "" {
-		return fmt.Errorf("TurtleWoW path not set")
+	// Get current version path
+	vm, err := version.LoadVersionManager()
+	if err != nil {
+		return fmt.Errorf("failed to load version manager: %v", err)
 	}
 
-	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+	currentVer, err := vm.GetCurrentVersion()
+	if err != nil {
+		return fmt.Errorf("failed to get current version: %v", err)
+	}
+
+	if currentVer.GamePath == "" {
+		return fmt.Errorf("game path not set for current version")
+	}
+
+	configPath := filepath.Join(currentVer.GamePath, "WTF", "Config.wtf")
 
 	// Create WTF directory if it doesn't exist
 	wtfDir := filepath.Dir(configPath)

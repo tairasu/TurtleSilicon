@@ -55,7 +55,7 @@ func (am *AddonManager) ScanAddonsWithProgress(updateProgress func(string)) erro
 
 func (am *AddonManager) scanAddonsWithProgress(updateProgress func(string), checkUpdates bool) error {
 	if paths.TurtlewowPath == "" {
-		return fmt.Errorf("TurtleWoW path not set")
+		return fmt.Errorf("game path not set")
 	}
 
 	addonsPath := filepath.Join(paths.TurtlewowPath, "Interface", "Addons")
@@ -232,7 +232,13 @@ func (am *AddonManager) UpdateAddon(addon *Addon) error {
 		return fmt.Errorf("failed to update addon %s: %v", addon.Name, err)
 	}
 
-	addon.LastUpdated = time.Now()
+	// Update the directory's modification time to reflect the update
+	now := time.Now()
+	if err := os.Chtimes(addon.Path, now, now); err != nil {
+		debug.Printf("Warning: failed to update directory modification time for %s: %v", addon.Name, err)
+	}
+
+	addon.LastUpdated = now
 	debug.Printf("Successfully updated addon: %s", addon.Name)
 	return nil
 }
@@ -397,7 +403,6 @@ func (am *AddonManager) createAddonManagerPopup() {
 
 	popup := widget.NewModalPopUp(mainContainer, am.window.Canvas())
 
-	// Make it truly fullscreen like delete/add operations
 	canvasSize := am.window.Canvas().Size()
 	popup.Resize(canvasSize)
 
@@ -1037,7 +1042,7 @@ func (am *AddonManager) installAddonFromRepo(repoURL string) {
 
 func (am *AddonManager) cloneRepository(repoURL string) error {
 	if paths.TurtlewowPath == "" {
-		return fmt.Errorf("TurtleWoW path not set")
+		return fmt.Errorf("game path not set")
 	}
 
 	addonsPath := filepath.Join(paths.TurtlewowPath, "Interface", "Addons")

@@ -110,7 +110,7 @@ func LaunchGame(myWindow fyne.Window) {
 		return
 	}
 	if paths.TurtlewowPath == "" {
-		dialog.ShowError(fmt.Errorf("TurtleWoW path not set. Please set it in the patcher."), myWindow)
+		dialog.ShowError(fmt.Errorf("game path not set. Please set it in the patcher."), myWindow)
 		return
 	}
 	if !paths.PatchesAppliedTurtleWoW || !paths.PatchesAppliedCrossOver {
@@ -180,25 +180,14 @@ func continueLaunch(myWindow fyne.Window, wowExePath string) {
 
 	// Auto-delete WDB directory if enabled
 	if AutoDeleteWdb {
-		wdbPath := filepath.Join(paths.TurtlewowPath, "WDB")
-		if utils.DirExists(wdbPath) {
-			debug.Printf("Auto-deleting WDB directory: %s", wdbPath)
-			if err := os.RemoveAll(wdbPath); err != nil {
-				debug.Printf("Warning: failed to auto-delete WDB directory: %v", err)
-				// Don't block the launch, just log the error
-			} else {
-				debug.Printf("Successfully auto-deleted WDB directory")
-			}
-		} else {
-			debug.Printf("WDB directory not found, nothing to delete")
-		}
+		deleteLegacyWDBDirectories(paths.TurtlewowPath)
 	}
 
 	// Since RosettaX87 service is already running, we can directly launch WoW
 	debug.Println("RosettaX87 service is running. Proceeding to launch WoW.")
 
 	if paths.CrossoverPath == "" || paths.TurtlewowPath == "" {
-		dialog.ShowError(fmt.Errorf("CrossOver path or TurtleWoW path is not set. Cannot launch WoW."), myWindow)
+		dialog.ShowError(fmt.Errorf("CrossOver path or game path is not set. Cannot launch WoW."), myWindow)
 		return
 	}
 
@@ -269,4 +258,34 @@ func StopGame() error {
 	}
 
 	return nil
+}
+
+// deleteLegacyWDBDirectories deletes WDB directories for legacy launcher
+func deleteLegacyWDBDirectories(gamePath string) {
+	// Check for WDB in root directory
+	wdbPath := filepath.Join(gamePath, "WDB")
+	if utils.DirExists(wdbPath) {
+		debug.Printf("Auto-deleting WDB directory: %s", wdbPath)
+		if err := os.RemoveAll(wdbPath); err != nil {
+			debug.Printf("Warning: failed to auto-delete WDB directory: %v", err)
+		} else {
+			debug.Printf("Successfully auto-deleted WDB directory")
+		}
+	}
+
+	// Check for WDB in Cache subdirectory
+	cacheWdbPath := filepath.Join(gamePath, "Cache", "WDB")
+	if utils.DirExists(cacheWdbPath) {
+		debug.Printf("Auto-deleting Cache/WDB directory: %s", cacheWdbPath)
+		if err := os.RemoveAll(cacheWdbPath); err != nil {
+			debug.Printf("Warning: failed to auto-delete Cache/WDB directory: %v", err)
+		} else {
+			debug.Printf("Successfully auto-deleted Cache/WDB directory")
+		}
+	}
+
+	// If neither was found, log it
+	if !utils.DirExists(wdbPath) && !utils.DirExists(cacheWdbPath) {
+		debug.Printf("WDB directory not found, nothing to delete")
+	}
 }

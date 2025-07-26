@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -15,6 +16,11 @@ var (
 	turtlewowStatusLabel *widget.RichText
 	crossoverStatusLabel *widget.RichText
 	serviceStatusLabel   *widget.RichText
+
+	// Version management
+	VersionDropdown    *widget.Select
+	VersionTitleButton *widget.Button
+	VersionTitleText   *widget.RichText
 
 	// Action buttons
 	launchButton           *widget.Button
@@ -60,6 +66,10 @@ var (
 
 	// Window reference for popup functionality
 	currentWindow fyne.Window
+
+	// Logo components
+	logoImage     *canvas.Image
+	logoContainer fyne.CanvasObject
 
 	// State variables
 	currentWineRegistryEnabled bool

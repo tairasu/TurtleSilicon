@@ -5,6 +5,7 @@ go 1.21
 require (
 	fyne.io/fyne/v2 v2.6.1
 	github.com/zalando/go-keyring v0.2.6
+	howett.net/plist v1.0.1
 )
 
 require (
@@ -42,5 +43,4 @@ require (
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	howett.net/plist v1.0.1 // indirect
 )

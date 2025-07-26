@@ -17,7 +17,7 @@ const appVersion = "1.3.0"
 func main() {
 	TSApp := app.NewWithID("com.tairasu.turtlesilicon")
 	TSWindow := TSApp.NewWindow("TurtleSilicon v" + appVersion)
-	TSWindow.Resize(fyne.NewSize(650, 500))
+	TSWindow.Resize(fyne.NewSize(650, 550))
 	TSWindow.SetFixedSize(true)
 
 	// Check for updates

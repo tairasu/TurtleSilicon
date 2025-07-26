@@ -258,21 +258,7 @@ func showTroubleshootingPopup() {
 
 	// --- Delete WDB Directory ---
 	wdbDeleteButton = widget.NewButton("Delete", func() {
-		wdbPath := filepath.Join(paths.TurtlewowPath, "WDB")
-		if !utils.DirExists(wdbPath) {
-			dialog.ShowInformation("WDB Not Found", "No WDB directory found in your TurtleWoW folder.", currentWindow)
-			return
-		}
-		dialog.NewConfirm("Delete WDB Directory", "Are you sure you want to delete the WDB directory? This will remove all cached data. No important data will be lost.", func(confirm bool) {
-			if confirm {
-				err := os.RemoveAll(wdbPath)
-				if err != nil {
-					dialog.ShowError(fmt.Errorf("Failed to delete WDB: %v", err), currentWindow)
-				} else {
-					dialog.ShowInformation("WDB Deleted", "WDB directory deleted successfully.", currentWindow)
-				}
-			}
-		}, currentWindow).Show()
+		deleteWDBDirectoriesInPopup()
 	})
 
 	// --- Delete Wine Prefixes ---
@@ -418,4 +404,69 @@ func isCrossoverVersionRecommended(version string) bool {
 		return true
 	}
 	return false
+}
+
+// deleteWDBDirectoriesInPopup deletes WDB directories for troubleshooting popup
+func deleteWDBDirectoriesInPopup() {
+	currentVer := GetCurrentVersion()
+	gamePath := ""
+
+	if currentVer != nil {
+		gamePath = currentVer.GamePath
+	} else {
+		// Fall back to legacy path
+		gamePath = paths.TurtlewowPath
+	}
+
+	if gamePath == "" {
+		dialog.ShowInformation("Path Not Set", "No game path is set. Please set your game directory first.", currentWindow)
+		return
+	}
+
+	// Check for WDB directories
+	wdbPath := filepath.Join(gamePath, "WDB")
+	cacheWdbPath := filepath.Join(gamePath, "Cache", "WDB")
+
+	wdbExists := utils.DirExists(wdbPath)
+	cacheWdbExists := utils.DirExists(cacheWdbPath)
+
+	if !wdbExists && !cacheWdbExists {
+		dialog.ShowInformation("WDB Not Found", "No WDB directories found in your game folder.", currentWindow)
+		return
+	}
+
+	// Build message based on what exists
+	message := "Are you sure you want to delete the WDB directories? This will remove all cached data. No important data will be lost.\n\nDirectories to delete:\n"
+	if wdbExists {
+		message += "- " + wdbPath + "\n"
+	}
+	if cacheWdbExists {
+		message += "- " + cacheWdbPath + "\n"
+	}
+
+	dialog.NewConfirm("Delete WDB Directories", message, func(confirm bool) {
+		if confirm {
+			var errors []string
+
+			// Delete main WDB directory
+			if wdbExists {
+				if err := os.RemoveAll(wdbPath); err != nil {
+					errors = append(errors, fmt.Sprintf("Failed to delete %s: %v", wdbPath, err))
+				}
+			}
+
+			// Delete Cache/WDB directory
+			if cacheWdbExists {
+				if err := os.RemoveAll(cacheWdbPath); err != nil {
+					errors = append(errors, fmt.Sprintf("Failed to delete %s: %v", cacheWdbPath, err))
+				}
+			}
+
+			if len(errors) > 0 {
+				dialog.ShowError(fmt.Errorf("Some WDB directories could not be deleted:\n%s", strings.Join(errors, "\n")), currentWindow)
+			} else {
+				dialog.ShowInformation("WDB Deleted", "WDB directories deleted successfully.", currentWindow)
+			}
+		}
+	}, currentWindow).Show()
 }

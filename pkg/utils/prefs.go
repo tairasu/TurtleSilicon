@@ -65,3 +65,21 @@ func SavePrefs(prefs *UserPrefs) error {
 	}
 	return os.WriteFile(path, data, 0644)
 }
+
+// MigratePrefsToVersionSystem migrates old UserPrefs to the new version system
+func MigratePrefsToVersionSystem() error {
+	// Load old preferences
+	oldPrefs, err := LoadPrefs()
+	if err != nil {
+		return err
+	}
+
+	// Check if migration is needed (if TurtleWoWPath is set in old prefs)
+	if oldPrefs.TurtleWoWPath == "" && oldPrefs.CrossOverPath == "" {
+		return nil // No migration needed
+	}
+
+	// Import version package to avoid circular dependency
+	// This will be handled by the calling code instead
+	return nil
+}

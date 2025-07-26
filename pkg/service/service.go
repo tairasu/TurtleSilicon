@@ -80,7 +80,7 @@ func StartRosettaX87Service(myWindow fyne.Window, updateAllStatuses func()) {
 	log.Println("Starting RosettaX87 service...")
 
 	if paths.TurtlewowPath == "" {
-		dialog.ShowError(fmt.Errorf("TurtleWoW path not set. Please set it first"), myWindow)
+		dialog.ShowError(fmt.Errorf("Game path not set. Please set it first"), myWindow)
 		return
 	}
 
@@ -88,7 +88,7 @@ func StartRosettaX87Service(myWindow fyne.Window, updateAllStatuses func()) {
 	rosettaX87Exe := filepath.Join(rosettaX87Dir, "rosettax87")
 
 	if !utils.PathExists(rosettaX87Exe) {
-		dialog.ShowError(fmt.Errorf("rosettax87 executable not found at %s. Please apply TurtleWoW patches first", rosettaX87Exe), myWindow)
+		dialog.ShowError(fmt.Errorf("rosettax87 executable not found at %s. Please apply Game patches first", rosettaX87Exe), myWindow)
 		return
 	}
 
@@ -403,6 +403,40 @@ func IsServiceRunning() bool {
 
 	ServiceRunning = false
 	return false
+}
+
+// StopRosettaX87ServiceSilent stops the running RosettaX87 service without showing dialogs
+func StopRosettaX87ServiceSilent() {
+	log.Println("Silently stopping RosettaX87 service...")
+
+	if !ServiceRunning {
+		return
+	}
+
+	if serviceCmd != nil && serviceCmd.Process != nil {
+		// Send SIGTERM to gracefully stop the process
+		err := serviceCmd.Process.Signal(syscall.SIGTERM)
+		if err != nil {
+			log.Printf("Failed to send SIGTERM to process: %v", err)
+			// Try SIGKILL as fallback
+			err = serviceCmd.Process.Kill()
+			if err != nil {
+				log.Printf("Failed to kill process: %v", err)
+				return
+			}
+		}
+
+		// Wait for the process to exit
+		go func() {
+			serviceCmd.Wait()
+			ServiceRunning = false
+			serviceCmd = nil
+			servicePID = 0
+			log.Println("RosettaX87 service stopped silently")
+		}()
+	} else {
+		ServiceRunning = false
+	}
 }
 
 // CleanupService ensures the service is stopped when the application exits

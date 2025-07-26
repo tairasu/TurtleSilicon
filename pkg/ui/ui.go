@@ -19,13 +19,17 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	crossoverStatusLabel = widget.NewRichText()
 	serviceStatusLabel = widget.NewRichText()
 
-	// Load saved paths from prefs
-	prefs, _ := utils.LoadPrefs()
-	if prefs.TurtleWoWPath != "" {
-		paths.TurtlewowPath = prefs.TurtleWoWPath
-	}
-	if prefs.CrossOverPath != "" {
-		paths.CrossoverPath = prefs.CrossOverPath
+	// Initialize version system
+	if err := InitializeVersionSystem(); err != nil {
+		debug.Printf("Error initializing version system: %v", err)
+		// Fall back to old system if version system fails
+		prefs, _ := utils.LoadPrefs()
+		if prefs.TurtleWoWPath != "" {
+			paths.TurtlewowPath = prefs.TurtleWoWPath
+		}
+		if prefs.CrossOverPath != "" {
+			paths.CrossoverPath = prefs.CrossOverPath
+		}
 	}
 
 	// Create all UI components
@@ -53,6 +57,12 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	headerContent := createHeaderContainer()
 	mainContent := createMainContent(myWindow)
 	bottomBar := createBottomBar(myWindow)
+
+	// Setup version dropdown after UI components are created
+	SetupVersionDropdown(myWindow)
+
+	// Refresh UI to display current version settings and paths
+	RefreshUIForCurrentVersion()
 
 	// Initial UI state update
 	UpdateAllStatuses()
