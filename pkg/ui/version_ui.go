@@ -318,6 +318,33 @@ func onVersionChanged(selectedDisplayName string, myWindow fyne.Window) {
 	// Update the logo to match the new version
 	updateLogoForVersion(selectedVersionID)
 
+	// For EpochSilicon, automatically check for updates if already patched
+	if selectedVersionID == "epochsilicon" && currentVersion != nil && currentVersion.GamePath != "" {
+		// Check if we're already patched by looking for required files
+		missingFiles, err := epochsilicon.CheckEpochSiliconFiles(currentVersion.GamePath)
+		if err == nil && len(missingFiles) == 0 {
+			// All files exist, so we're patched - check for updates
+			debug.Printf("EpochSilicon is already patched, checking for updates...")
+			epochsilicon.CheckForUpdatesWithProgress(myWindow, currentVersion.GamePath, func(updatesAvailable []epochsilicon.RequiredFile, err error) {
+				if err != nil {
+					debug.Printf("Failed to check for updates: %v", err)
+				} else if len(updatesAvailable) > 0 {
+					epochsilicon.ShowUpdatePromptDialog(myWindow, updatesAvailable, func() {
+						epochsilicon.DownloadMissingFiles(myWindow, currentVersion.GamePath, updatesAvailable, func(success bool) {
+							if success {
+								dialog.ShowInformation("Update Complete", "All Project Epoch files have been updated successfully!", myWindow)
+								// Refresh the UI to reflect any changes
+								UpdateAllStatuses()
+							}
+						})
+					})
+				} else {
+					debug.Printf("EpochSilicon is up to date")
+				}
+			})
+		}
+	}
+
 	debug.Printf("Successfully switched to version: %s", selectedDisplayName)
 }
 
@@ -661,25 +688,47 @@ func PatchCurrentVersion(myWindow fyne.Window) {
 		return
 	}
 
-	// For EpochSilicon, check required files before patching
+	// For EpochSilicon, check for updates and missing files before patching
 	if currentVersion.ID == "epochsilicon" {
-		missingFiles, err := epochsilicon.CheckEpochSiliconFiles(currentVersion.GamePath)
-		if err != nil {
-			dialog.ShowError(err, myWindow)
-			return
-		}
+		// Check for updates with progress indicator
+		epochsilicon.CheckForUpdatesWithProgress(myWindow, currentVersion.GamePath, func(updatesAvailable []epochsilicon.RequiredFile, err error) {
+			if err != nil {
+				debug.Printf("Failed to check for updates: %v", err)
+				// Fall back to missing files check
+				missingFiles, err := epochsilicon.CheckEpochSiliconFiles(currentVersion.GamePath)
+				if err != nil {
+					dialog.ShowError(err, myWindow)
+					return
+				}
 
-		if len(missingFiles) > 0 {
-			epochsilicon.ShowMissingFilesDialog(myWindow, missingFiles, func() {
-				epochsilicon.DownloadMissingFiles(myWindow, currentVersion.GamePath, missingFiles, func(success bool) {
-					if success {
-						// After successful download, proceed with patching
-						proceedWithPatching(myWindow)
-					}
+				if len(missingFiles) > 0 {
+					epochsilicon.ShowMissingFilesDialog(myWindow, missingFiles, func() {
+						epochsilicon.DownloadMissingFiles(myWindow, currentVersion.GamePath, missingFiles, func(success bool) {
+							if success {
+								// After successful download, proceed with patching
+								proceedWithPatching(myWindow)
+							}
+						})
+					})
+				} else {
+					// No missing files, proceed with patching
+					proceedWithPatching(myWindow)
+				}
+			} else if len(updatesAvailable) > 0 {
+				epochsilicon.ShowUpdatePromptDialog(myWindow, updatesAvailable, func() {
+					epochsilicon.DownloadMissingFiles(myWindow, currentVersion.GamePath, updatesAvailable, func(success bool) {
+						if success {
+							// After successful update, proceed with patching
+							proceedWithPatching(myWindow)
+						}
+					})
 				})
-			})
-			return
-		}
+			} else {
+				// No updates needed, proceed with patching
+				proceedWithPatching(myWindow)
+			}
+		})
+		return
 	}
 
 	// Proceed with normal patching
@@ -739,22 +788,38 @@ func checkEpochSiliconFiles(myWindow fyne.Window, gamePath string) {
 		}
 	}()
 
-	// Check for missing files
-	missingFiles, err := epochsilicon.CheckEpochSiliconFiles(gamePath)
-	if err != nil {
-		dialog.ShowError(err, myWindow)
-		return
-	}
+	// Check for updates with progress indicator
+	epochsilicon.CheckForUpdatesWithProgress(myWindow, gamePath, func(updatesAvailable []epochsilicon.RequiredFile, err error) {
+		if err != nil {
+			debug.Printf("Failed to check for updates: %v", err)
+			// Fall back to missing files check
+			missingFiles, err := epochsilicon.CheckEpochSiliconFiles(gamePath)
+			if err != nil {
+				dialog.ShowError(err, myWindow)
+				return
+			}
 
-	if len(missingFiles) > 0 {
-		epochsilicon.ShowMissingFilesDialog(myWindow, missingFiles, func() {
-			epochsilicon.DownloadMissingFiles(myWindow, gamePath, missingFiles, func(success bool) {
-				if success {
-					dialog.ShowInformation("Download Complete", "All Project Epoch files have been downloaded successfully!", myWindow)
-					// Refresh the UI to reflect any changes
-					UpdateAllStatuses()
-				}
+			if len(missingFiles) > 0 {
+				epochsilicon.ShowMissingFilesDialog(myWindow, missingFiles, func() {
+					epochsilicon.DownloadMissingFiles(myWindow, gamePath, missingFiles, func(success bool) {
+						if success {
+							dialog.ShowInformation("Download Complete", "All Project Epoch files have been downloaded successfully!", myWindow)
+							// Refresh the UI to reflect any changes
+							UpdateAllStatuses()
+						}
+					})
+				})
+			}
+		} else if len(updatesAvailable) > 0 {
+			epochsilicon.ShowUpdatePromptDialog(myWindow, updatesAvailable, func() {
+				epochsilicon.DownloadMissingFiles(myWindow, gamePath, updatesAvailable, func(success bool) {
+					if success {
+						dialog.ShowInformation("Update Complete", "All Project Epoch files have been updated successfully!", myWindow)
+						// Refresh the UI to reflect any changes
+						UpdateAllStatuses()
+					}
+				})
 			})
-		})
-	}
+		}
+	})
 }
