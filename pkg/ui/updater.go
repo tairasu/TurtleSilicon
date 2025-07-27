@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/utils"
@@ -53,8 +52,11 @@ func ShowUpdateDialog(updateInfo *utils.UpdateInfo, currentVersion string, myWin
 	progressBar := widget.NewProgressBar()
 	progressBar.Hide()
 
-	progressLabel := widget.NewLabel("")
-	progressLabel.Hide()
+	statusLabel := widget.NewLabel("")
+	statusLabel.Hide()
+
+	detailLabel := widget.NewLabel("")
+	detailLabel.Hide()
 
 	// Checkbox for suppressing this version
 	suppressCheck := widget.NewCheck("Don't show this update again", nil)
@@ -67,44 +69,56 @@ func ShowUpdateDialog(updateInfo *utils.UpdateInfo, currentVersion string, myWin
 		notesLabel,
 		notesScroll,
 		widget.NewSeparator(),
+		statusLabel,
+		detailLabel,
 		progressBar,
-		progressLabel,
 		suppressCheck,
 	)
 
-	// Create custom dialog
+	windowSize := myWindow.Canvas().Size()
+	dialogWidth := float32(windowSize.Width) * 4.0 / 5.0
+	dialogHeight := float32(windowSize.Height) * 4.0 / 5.0
+
 	d := dialog.NewCustom("New Update Available", "", content, myWindow)
-	d.Resize(fyne.NewSize(550, 400))
+	d.Resize(fyne.NewSize(dialogWidth, dialogHeight))
 
 	// Download and install function
 	downloadAndInstall := func() {
 		// Show progress elements
 		progressBar.Show()
-		progressLabel.Show()
-		progressLabel.SetText("Starting download...")
+		statusLabel.Show()
+		detailLabel.Show()
+		statusLabel.SetText("Preparing download...")
+		detailLabel.SetText("")
 
 		// Disable dialog closing during download
 		d.SetButtons([]fyne.CanvasObject{})
 
 		go func() {
+			// Update status
+			fyne.Do(func() {
+				statusLabel.SetText("Downloading TurtleSilicon update...")
+				detailLabel.SetText("0.0 MB / " + formatFileSize(dmgAsset.Size))
+			})
+
 			// Download with progress
 			downloadPath, err := utils.DownloadUpdate(dmgAsset.BrowserDownloadURL, func(downloaded, total int64) {
 				// Update progress on UI thread
-				fyne.NewAnimation(
-					time.Millisecond*50,
-					func(float32) {
-						if total > 0 {
-							progress := float64(downloaded) / float64(total)
-							progressBar.SetValue(progress)
-							progressLabel.SetText(fmt.Sprintf("Downloaded: %s / %s (%.1f%%)",
-								formatFileSize(downloaded), formatFileSize(total), progress*100))
-						}
-					},
-				).Curve = fyne.AnimationLinear
+				fyne.Do(func() {
+					if total > 0 {
+						progress := float64(downloaded) / float64(total)
+						progressBar.SetValue(progress)
+						detailLabel.SetText(fmt.Sprintf("%.1f MB / %.1f MB",
+							float64(downloaded)/(1024*1024), float64(total)/(1024*1024)))
+					}
+				})
 			})
 
 			if err != nil {
-				progressLabel.SetText(fmt.Sprintf("Download failed: %v", err))
+				fyne.Do(func() {
+					statusLabel.SetText("Download failed!")
+					detailLabel.SetText(fmt.Sprintf("Error: %v", err))
+				})
 				debug.Printf("Download failed: %v", err)
 
 				// Re-enable close button
@@ -114,13 +128,19 @@ func ShowUpdateDialog(updateInfo *utils.UpdateInfo, currentVersion string, myWin
 				return
 			}
 
-			progressLabel.SetText("Installing update...")
-			progressBar.SetValue(1.0)
+			fyne.Do(func() {
+				statusLabel.SetText("Installing update...")
+				detailLabel.SetText("Update downloaded successfully")
+				progressBar.SetValue(1.0)
+			})
 
 			// Install update
 			err = utils.InstallUpdate(downloadPath)
 			if err != nil {
-				progressLabel.SetText(fmt.Sprintf("Installation failed: %v", err))
+				fyne.Do(func() {
+					statusLabel.SetText("Installation failed!")
+					detailLabel.SetText(fmt.Sprintf("Error: %v", err))
+				})
 				debug.Printf("Installation failed: %v", err)
 
 				// Re-enable close button
@@ -131,7 +151,10 @@ func ShowUpdateDialog(updateInfo *utils.UpdateInfo, currentVersion string, myWin
 			}
 
 			// Success - show restart dialog
-			progressLabel.SetText("Update installed successfully!")
+			fyne.Do(func() {
+				statusLabel.SetText("Update installed successfully!")
+				detailLabel.SetText("All files updated successfully")
+			})
 
 			restartDialog := dialog.NewConfirm(
 				"Update Complete",
