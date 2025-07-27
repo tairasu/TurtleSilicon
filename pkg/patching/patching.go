@@ -259,6 +259,10 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		// Continue with patching even if Config.wtf update fails
 	}
 
+	if err := applyMovieSetting(); err != nil {
+		debug.Printf("Warning: failed to apply movie setting to Config.wtf: %v", err)
+	}
+
 	// Apply shadowLOD setting to Config.wtf for FPS optimization
 	// Use shouldEnableShadowLOD which accounts for first-time patching
 	if shouldEnableShadowLOD {
@@ -639,6 +643,41 @@ func applyVertexAnimShadersSetting() error {
 	}
 
 	debug.Printf("Successfully applied vertex animation shaders setting to Config.wtf")
+	return nil
+}
+
+// applyMovieSetting applies the movie setting to Config.wtf to prevent crashes
+func applyMovieSetting() error {
+	if paths.TurtlewowPath == "" {
+		return fmt.Errorf("TurtleWoW path not set")
+	}
+
+	configPath := filepath.Join(paths.TurtlewowPath, "WTF", "Config.wtf")
+
+	// Create WTF directory if it doesn't exist
+	wtfDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(wtfDir, 0755); err != nil {
+		return fmt.Errorf("failed to create WTF directory: %v", err)
+	}
+
+	var configText string
+
+	// Read existing config if it exists
+	if content, err := os.ReadFile(configPath); err == nil {
+		configText = string(content)
+	} else {
+		debug.Printf("Config.wtf not found, creating new file")
+		configText = ""
+	}
+
+	configText = updateOrAddConfigSetting(configText, "movie", "0")
+
+	// Write the updated config back to file
+	if err := os.WriteFile(configPath, []byte(configText), 0644); err != nil {
+		return fmt.Errorf("failed to write Config.wtf: %v", err)
+	}
+
+	debug.Printf("Successfully applied movie setting to Config.wtf")
 	return nil
 }
 
