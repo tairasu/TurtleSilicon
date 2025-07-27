@@ -1,4 +1,4 @@
-<h1 align="center"><img src="Icon.png" alt="TurtleSilicon Logo" width="50" height="50" align="center"> TurtleSilicon</h1> 
+<h1 align="center"><img src="img/icons/Default.png" alt="TurtleSilicon Logo" width="50" height="50" align="center"> TurtleSilicon</h1> 
 
 <div align="center">
     
