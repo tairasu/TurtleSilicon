@@ -9,12 +9,13 @@ build-dev:
 	@echo "Copying additional resources to app bundle..."
 	@mkdir -p TurtleSilicon.app/Contents/Resources/rosettax87
 	@mkdir -p TurtleSilicon.app/Contents/Resources/winerosetta
+	@mkdir -p TurtleSilicon.app/Contents/Resources/img/icons
 	@cp -R rosettax87/* TurtleSilicon.app/Contents/Resources/rosettax87/
 	@cp -R winerosetta/* TurtleSilicon.app/Contents/Resources/winerosetta/
 	@cp -R img/icons/* TurtleSilicon.app/Contents/Resources/img/icons/
 	@echo "Development build complete!"
 
-build: build-dev
+build: build-release
 
 build-release:
 	@echo "Building optimized release version..."
