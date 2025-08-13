@@ -8,7 +8,6 @@ import (
 	"turtlesilicon/pkg/launcher"
 	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/paths"
-	"turtlesilicon/pkg/service"
 	"turtlesilicon/pkg/utils"
 	"turtlesilicon/pkg/version"
 
@@ -285,9 +284,7 @@ func onVersionChanged(selectedDisplayName string, myWindow fyne.Window) {
 		return
 	}
 
-	// Stop any running rosettax87 service before switching versions
-	// Each version should have its own independent service
-	service.StopRosettaX87ServiceSilent()
+	// No service cleanup needed - rosettax87 now uses direct execution
 
 	// Switch to the new version
 	if err := currentVersionManager.SetCurrentVersion(selectedVersionID); err != nil {
@@ -585,6 +582,12 @@ func SelectCurrentVersionGamePath(myWindow fyne.Window) {
 		return
 	}
 
+	// Show the folder selection dialog for all cases
+	showGamePathSelectionDialog(myWindow)
+}
+
+// showGamePathSelectionDialog shows the standard folder selection dialog
+func showGamePathSelectionDialog(myWindow fyne.Window) {
 	// Create larger folder dialog - 5/6 of window size
 	windowSize := myWindow.Canvas().Size()
 	dialogWidth := windowSize.Width * 5 / 6
@@ -601,42 +604,47 @@ func SelectCurrentVersionGamePath(myWindow fyne.Window) {
 		}
 		selectedPath := uri.Path()
 
-		currentVersion.GamePath = selectedPath
-		if err := currentVersionManager.UpdateVersion(currentVersion); err != nil {
-			dialog.ShowError(fmt.Errorf("failed to save game path: %v", err), myWindow)
-			return
-		}
-
-		// For TurtleSilicon, also update prefs.json for backward compatibility
-		if currentVersion.ID == "turtlesilicon" {
-			if prefs, err := utils.LoadPrefs(); err == nil {
-				prefs.TurtleWoWPath = selectedPath
-				if err := utils.SavePrefs(prefs); err != nil {
-					debug.Printf("Warning: failed to update TurtleWoWPath in prefs.json: %v", err)
-				} else {
-					debug.Printf("Updated TurtleWoWPath in prefs.json for backward compatibility")
-				}
-			}
-		}
-
-		// Reset patching status for this version
-		paths.SetVersionPatchingStatus(currentVersion.ID, false, false)
-
-		// Sync legacy paths
-		syncLegacyPaths()
-
-		debug.Printf("Game path set for version %s: %s", currentVersion.ID, selectedPath)
-		updateVersionPathLabels()
-		UpdateAllStatuses()
-
-		// For EpochSilicon, check required files and offer to download missing ones
-		if currentVersion.ID == "epochsilicon" {
-			checkEpochSiliconFiles(myWindow, selectedPath)
-		}
+		setGamePathForCurrentVersion(myWindow, selectedPath)
 	}, myWindow)
 
 	folderDialog.Resize(fyne.NewSize(dialogWidth, dialogHeight))
 	folderDialog.Show()
+}
+
+// setGamePathForCurrentVersion sets the game path for the current version
+func setGamePathForCurrentVersion(myWindow fyne.Window, selectedPath string) {
+	currentVersion.GamePath = selectedPath
+	if err := currentVersionManager.UpdateVersion(currentVersion); err != nil {
+		dialog.ShowError(fmt.Errorf("failed to save game path: %v", err), myWindow)
+		return
+	}
+
+	// For TurtleSilicon, also update prefs.json for backward compatibility
+	if currentVersion.ID == "turtlesilicon" {
+		if prefs, err := utils.LoadPrefs(); err == nil {
+			prefs.TurtleWoWPath = selectedPath
+			if err := utils.SavePrefs(prefs); err != nil {
+				debug.Printf("Warning: failed to update TurtleWoWPath in prefs.json: %v", err)
+			} else {
+				debug.Printf("Updated TurtleWoWPath in prefs.json for backward compatibility")
+			}
+		}
+	}
+
+	// Reset patching status for this version
+	paths.SetVersionPatchingStatus(currentVersion.ID, false, false)
+
+	// Sync legacy paths
+	syncLegacyPaths()
+
+	debug.Printf("Game path set for version %s: %s", currentVersion.ID, selectedPath)
+	updateVersionPathLabels()
+	UpdateAllStatuses()
+
+	// For EpochSilicon, check required files and offer to download missing ones
+	if currentVersion.ID == "epochsilicon" {
+		checkEpochSiliconFiles(myWindow, selectedPath)
+	}
 }
 
 // Version-aware CrossOver path selection
@@ -836,4 +844,9 @@ func checkEpochSiliconFiles(myWindow fyne.Window, gamePath string) {
 			})
 		}
 	})
+}
+
+// CheckForFirstTimeUser is no longer needed - removed first-time user dialogs
+func CheckForFirstTimeUser(myWindow fyne.Window) {
+	// No longer showing first-time user dialogs - users can use Set/Change Game Path directly
 }

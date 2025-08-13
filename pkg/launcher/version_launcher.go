@@ -139,9 +139,9 @@ func launchTurtleSiliconVersion(myWindow fyne.Window, gamePath string, crossover
 	LaunchGame(myWindow)
 }
 
-// launchOtherVersion launches other versions using rosettax87 service + DivxDecoder injection
+// launchOtherVersion launches other versions using rosettax87 direct execution
 func launchOtherVersion(myWindow fyne.Window, versionID string, gamePath string, crossoverPath string, gameExePath string, enableMetalHud bool, customEnvVars string) {
-	debug.Printf("Launching %s using rosettax87 service", versionID)
+	debug.Printf("Launching %s using rosettax87 direct execution", versionID)
 
 	wineloader2Path := filepath.Join(crossoverPath, "Contents", "SharedSupport", "CrossOver", "CrossOver-Hosted Application", "wineloader2")
 	rosettaX87ExePath := filepath.Join(gamePath, "rosettax87", "rosettax87")
@@ -152,7 +152,7 @@ func launchOtherVersion(myWindow fyne.Window, versionID string, gamePath string,
 	}
 
 	if !utils.PathExists(rosettaX87ExePath) {
-		dialog.ShowError(fmt.Errorf("rosettax87 service not found at %s. Ensure game patching was successful", rosettaX87ExePath), myWindow)
+		dialog.ShowError(fmt.Errorf("rosettax87 binary not found at %s. Ensure game patching was successful", rosettaX87ExePath), myWindow)
 		return
 	}
 
@@ -167,7 +167,7 @@ func launchOtherVersion(myWindow fyne.Window, versionID string, gamePath string,
 		envVars = customEnvVars + " " + envVars
 	}
 
-	// For other versions, we launch with their own rosettax87 service
+	// Direct execution without service dependency
 	shellCmd := fmt.Sprintf(`cd %s && %s %s %s %s`,
 		utils.QuotePathForShell(gamePath),
 		envVars,

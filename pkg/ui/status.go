@@ -219,11 +219,11 @@ func updatePlayButtonState() {
 			crossoverPatchesApplied = utils.PathExists(wineloader2Path)
 		}
 
-		launchEnabled = gamePatchesApplied && crossoverPatchesApplied && service.IsServiceRunning()
+		launchEnabled = gamePatchesApplied && crossoverPatchesApplied
 	} else {
 		// Fallback to legacy system
 		launchEnabled = paths.PatchesAppliedTurtleWoW && paths.PatchesAppliedCrossOver &&
-			paths.TurtlewowPath != "" && paths.CrossoverPath != "" && service.IsServiceRunning()
+			paths.TurtlewowPath != "" && paths.CrossoverPath != ""
 	}
 
 	if launchButton != nil {

@@ -158,9 +158,10 @@ func createPatchOperationsLayout() fyne.CanvasObject {
 		container.NewGridWithColumns(4,
 			widget.NewLabel("CrossOver Patch:"), crossoverStatusLabel, patchCrossOverButton, unpatchCrossOverButton,
 		),
-		container.NewGridWithColumns(4,
-			widget.NewLabel("RosettaX87 Service:"), serviceStatusLabel, startServiceButton, stopServiceButton,
-		),
+		// Service UI removed - rosettax87 now uses direct execution instead of service
+		// container.NewGridWithColumns(4,
+		//	widget.NewLabel("RosettaX87 Service:"), serviceStatusLabel, startServiceButton, stopServiceButton,
+		// ),
 		widget.NewSeparator(),
 	)
 

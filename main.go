@@ -2,7 +2,6 @@ package main
 
 import (
 	"turtlesilicon/pkg/debug"
-	"turtlesilicon/pkg/service"
 	"turtlesilicon/pkg/ui"
 	"turtlesilicon/pkg/utils"
 
@@ -52,8 +51,8 @@ func main() {
 
 	// Set up cleanup when window closes
 	TSWindow.SetCloseIntercept(func() {
-		debug.Println("Application closing, cleaning up RosettaX87 service...")
-		service.CleanupService()
+		debug.Println("Application closing...")
+		// No service cleanup needed - rosettax87 now uses direct execution
 		TSApp.Quit()
 	})
 

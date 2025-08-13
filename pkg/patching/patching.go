@@ -106,6 +106,26 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 
 	for resourceName, destPath := range rosettaFilesToCopy {
 		debug.Printf("Processing rosetta resource: %s to %s", resourceName, destPath)
+
+		// Check if file already exists and has correct size and hash
+		if utils.PathExists(destPath) && utils.CompareFileWithBundledResource(destPath, resourceName) {
+			debug.Printf("File %s already exists with correct size and hash, skipping copy", destPath)
+
+			// Ensure executable permission for rosettax87
+			if filepath.Base(destPath) == "rosettax87" {
+				if err := os.Chmod(destPath, 0755); err != nil {
+					debug.Printf("Warning: failed to set execute permission for existing %s: %v", destPath, err)
+				}
+			}
+			continue
+		}
+
+		if utils.PathExists(destPath) {
+			debug.Printf("File %s exists but has incorrect size/hash, updating...", destPath)
+		} else {
+			debug.Printf("File %s does not exist, creating...", destPath)
+		}
+
 		resource, err := fyne.LoadResourceFromPath(resourceName)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)

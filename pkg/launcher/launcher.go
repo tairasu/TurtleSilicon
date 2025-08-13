@@ -183,8 +183,8 @@ func continueLaunch(myWindow fyne.Window, wowExePath string) {
 		deleteLegacyWDBDirectories(paths.TurtlewowPath)
 	}
 
-	// Since RosettaX87 service is already running, we can directly launch WoW
-	debug.Println("RosettaX87 service is running. Proceeding to launch WoW.")
+	// Launch WoW using direct rosettax87 execution (no service required)
+	debug.Println("Launching WoW with direct rosettax87 execution.")
 
 	if paths.CrossoverPath == "" || paths.TurtlewowPath == "" {
 		dialog.ShowError(fmt.Errorf("CrossOver path or game path is not set. Cannot launch WoW."), myWindow)

@@ -99,24 +99,19 @@ Before you begin, ensure you have the following:
     *   Click "Patch CrossOver" to enable compatibility layers
     *   Status indicators will turn green once patching is successful
 
-6.  **Start RosettaX87 Service**
-    *   Click "Start Service" and enter your sudo password when prompted
-    *   This runs the performance optimization service in the background
-    *   The service automatically stops when you close the launcher
-
-7.  **Configure Options (Optional)**
+6.  **Configure Options (Optional)**
     *   Access the **Options** menu for detailed settings:
         - Enable version-specific features (e.g., vanilla-tweaks)
         - Configure graphics settings for optimal performance
         - Set up custom environment variables
         - Manage Wine registry settings
 
-8.  **Manage Addons**
+7.  **Manage Addons**
     *   Click **Addons** to open the addon manager
     *   Update existing git-based addons or install new ones from repositories
     *   Filter to show only git-managed addons for easy maintenance
 
-9.  **Launch Game**
+8.  **Launch Game**
     *   Once everything is configured and patched, click the large **PLAY** button
     *   Enjoy your optimized World of Warcraft experience on Apple Silicon!
 

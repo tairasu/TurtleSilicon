@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -521,7 +523,30 @@ func TestDMGMount(dmgPath string) (string, string, error) {
 	return mountPoint, newAppPath, nil
 }
 
-// CompareFileWithBundledResource compares the size of a file on disk with a bundled resource
+// calculateResourceHash calculates the MD5 hash of a bundled resource
+func calculateResourceHash(resource *fyne.StaticResource) string {
+	hash := md5.New()
+	hash.Write(resource.Content())
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+// calculateFileHash calculates the MD5 hash of a local file
+func calculateFileHash(filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	hash := md5.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// CompareFileWithBundledResource compares both size and hash of a file on disk with a bundled resource
 func CompareFileWithBundledResource(filePath, resourceName string) bool {
 	// Check if the file exists first
 	if !PathExists(filePath) {
@@ -542,14 +567,44 @@ func CompareFileWithBundledResource(filePath, resourceName string) bool {
 		return false
 	}
 
-	// Compare sizes
+	// Compare sizes first (quick check)
 	fileSize := fileInfo.Size()
 	resourceSize := int64(len(resource.Content()))
 
 	debug.Printf("Comparing file sizes - %s: %d bytes vs bundled %s: %d bytes",
 		filePath, fileSize, resourceName, resourceSize)
 
-	return fileSize == resourceSize
+	if fileSize != resourceSize {
+		debug.Printf("Size mismatch for %s: file=%d, resource=%d", filePath, fileSize, resourceSize)
+		return false
+	}
+
+	// Calculate and compare hashes for integrity verification
+	fileHash, err := calculateFileHash(filePath)
+	if err != nil {
+		debug.Printf("Failed to calculate hash for %s: %v", filePath, err)
+		return false
+	}
+
+	// Type assert to StaticResource for hash calculation
+	staticResource, ok := resource.(*fyne.StaticResource)
+	if !ok {
+		debug.Printf("Failed to convert resource to StaticResource for %s", resourceName)
+		return false
+	}
+
+	resourceHash := calculateResourceHash(staticResource)
+
+	debug.Printf("Comparing file hashes - %s: %s vs bundled %s: %s",
+		filePath, fileHash, resourceName, resourceHash)
+
+	if fileHash != resourceHash {
+		debug.Printf("Hash mismatch for %s: file=%s, resource=%s", filePath, fileHash, resourceHash)
+		return false
+	}
+
+	debug.Printf("File verification successful for %s: size=%d, hash=%s", filePath, fileSize, fileHash)
+	return true
 }
 
 // RestartApp restarts the application

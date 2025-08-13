@@ -34,6 +34,11 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 		}
 	}
 
+	// Check for first-time users after UI is ready
+	defer func() {
+		CheckForFirstTimeUser(myWindow)
+	}()
+
 	// Create all UI components
 	createOptionsComponents()
 	createPatchingButtons(myWindow)

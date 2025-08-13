@@ -171,6 +171,24 @@ func patchWithDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses func(), 
 
 	for resourceName, destPath := range rosettaFilesToCopy {
 		debug.Printf("Processing rosetta resource: %s to %s", resourceName, destPath)
+
+		// Check if file already exists and has correct size and hash
+		if utils.PathExists(destPath) && utils.CompareFileWithBundledResource(destPath, resourceName) {
+			debug.Printf("File %s already exists with correct size and hash, skipping copy", destPath)
+
+			// Ensure executable permission for all rosettax87 files
+			if err := os.Chmod(destPath, 0755); err != nil {
+				debug.Printf("Warning: failed to set execute permission for existing %s: %v", destPath, err)
+			}
+			continue
+		}
+
+		if utils.PathExists(destPath) {
+			debug.Printf("File %s exists but has incorrect size/hash, updating...", destPath)
+		} else {
+			debug.Printf("File %s does not exist, creating...", destPath)
+		}
+
 		resource, err := fyne.LoadResourceFromPath(resourceName)
 		if err != nil {
 			errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)
@@ -349,11 +367,24 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 	}
 
 	if usesDivxDecoderPatch {
-		// For non-TurtleSilicon versions, check for DivxDecoder.dll (winerosetta), d3d9.dll, and rosettax87 directory
+		// For non-TurtleSilicon versions, check for DivxDecoder.dll (winerosetta), d3d9.dll, and rosettax87 directory with verification
 		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
 		d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
 		rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
-		return utils.PathExists(divxDecoderPath) && utils.PathExists(d3d9DllPath) && utils.DirExists(rosettaX87Dir)
+
+		// Check that main files exist and rosettax87 directory exists
+		if !utils.PathExists(divxDecoderPath) || !utils.PathExists(d3d9DllPath) || !utils.DirExists(rosettaX87Dir) {
+			return false
+		}
+
+		// Verify rosettax87 binary files with hash/size verification
+		rosettax87Path := filepath.Join(rosettaX87Dir, "rosettax87")
+		libRuntimeRosettax87Path := filepath.Join(rosettaX87Dir, "libRuntimeRosettax87")
+
+		rosettax87Valid := utils.PathExists(rosettax87Path) && utils.CompareFileWithBundledResource(rosettax87Path, "rosettax87/rosettax87")
+		libRuntimeValid := utils.PathExists(libRuntimeRosettax87Path) && utils.CompareFileWithBundledResource(libRuntimeRosettax87Path, "rosettax87/libRuntimeRosettax87")
+
+		return rosettax87Valid && libRuntimeValid
 	}
 
 	// For TurtleSilicon, check full rosettax87 patches (winerosetta.dll, d3d9.dll, etc.)
@@ -361,5 +392,17 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 	d3d9Dll := filepath.Join(gamePath, "d3d9.dll")
 	rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
 
-	return utils.PathExists(winerosettaDll) && utils.PathExists(d3d9Dll) && utils.DirExists(rosettaX87Dir)
+	// Check that main files exist and rosettax87 directory exists
+	if !utils.PathExists(winerosettaDll) || !utils.PathExists(d3d9Dll) || !utils.DirExists(rosettaX87Dir) {
+		return false
+	}
+
+	// Verify rosettax87 binary files with hash/size verification
+	rosettax87Path := filepath.Join(rosettaX87Dir, "rosettax87")
+	libRuntimeRosettax87Path := filepath.Join(rosettaX87Dir, "libRuntimeRosettax87")
+
+	rosettax87Valid := utils.PathExists(rosettax87Path) && utils.CompareFileWithBundledResource(rosettax87Path, "rosettax87/rosettax87")
+	libRuntimeValid := utils.PathExists(libRuntimeRosettax87Path) && utils.CompareFileWithBundledResource(libRuntimeRosettax87Path, "rosettax87/libRuntimeRosettax87")
+
+	return rosettax87Valid && libRuntimeValid
 }
