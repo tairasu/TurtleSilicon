@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -70,9 +71,6 @@ func showOptionsPopup() {
 	shadowLabel := widget.NewLabel("Set Shadow LOD to 0")
 	shadowLabel.TextStyle = fyne.TextStyle{Bold: true}
 
-	libSiliconPatchLabel := widget.NewLabel("Enable libSiliconPatch")
-	libSiliconPatchLabel.TextStyle = fyne.TextStyle{Bold: true}
-
 	// Create setting rows with help buttons between checkbox and label
 	terrainRow := container.NewHBox(
 		reduceTerrainDistanceCheckbox,
@@ -86,10 +84,6 @@ func showOptionsPopup() {
 		setShadowLOD0Checkbox,
 		setShadowLOD0HelpButton,
 		shadowLabel)
-	libSiliconPatchRow := container.NewHBox(
-		libSiliconPatchCheckbox,
-		libSiliconPatchHelpButton,
-		libSiliconPatchLabel)
 
 	graphicsContainer := container.NewVBox(
 		graphicsTitle,
@@ -99,7 +93,6 @@ func showOptionsPopup() {
 		terrainRow,
 		multisampleRow,
 		shadowRow,
-		libSiliconPatchRow,
 		widget.NewSeparator(),
 		container.NewCenter(applyGraphicsSettingsButton),
 	)
@@ -250,7 +243,7 @@ func showDebugLogPopup() {
 		RosettaX87ServiceRunning: paths.RosettaX87ServiceRunning,
 		ServiceStarting:          paths.ServiceStarting,
 	}
-	
+
 	// Get current version info
 	var gameVersionInfo *debug.GameVersionInfo = nil
 	if vm, err := version.LoadVersionManager(); err == nil {
@@ -266,86 +259,93 @@ func showDebugLogPopup() {
 				UsesRosettaPatching:   currentVer.UsesRosettaPatching,
 				UsesDivxDecoderPatch:  currentVer.UsesDivxDecoderPatch,
 				Settings: debug.GameVersionSettings{
-					EnableVanillaTweaks:     currentVer.Settings.EnableVanillaTweaks,
-					RemapOptionAsAlt:        currentVer.Settings.RemapOptionAsAlt,
-					AutoDeleteWdb:           currentVer.Settings.AutoDeleteWdb,
-					EnableMetalHud:          currentVer.Settings.EnableMetalHud,
-					SaveSudoPassword:        currentVer.Settings.SaveSudoPassword,
-					ShowTerminalNormally:    currentVer.Settings.ShowTerminalNormally,
-					EnvironmentVariables:    currentVer.Settings.EnvironmentVariables,
-					ReduceTerrainDistance:   currentVer.Settings.ReduceTerrainDistance,
-					SetMultisampleTo2x:      currentVer.Settings.SetMultisampleTo2x,
-					SetShadowLOD0:           currentVer.Settings.SetShadowLOD0,
-					EnableLibSiliconPatch:   currentVer.Settings.EnableLibSiliconPatch,
+					EnableVanillaTweaks:   currentVer.Settings.EnableVanillaTweaks,
+					RemapOptionAsAlt:      currentVer.Settings.RemapOptionAsAlt,
+					AutoDeleteWdb:         currentVer.Settings.AutoDeleteWdb,
+					EnableMetalHud:        currentVer.Settings.EnableMetalHud,
+					SaveSudoPassword:      currentVer.Settings.SaveSudoPassword,
+					ShowTerminalNormally:  currentVer.Settings.ShowTerminalNormally,
+					EnvironmentVariables:  currentVer.Settings.EnvironmentVariables,
+					ReduceTerrainDistance: currentVer.Settings.ReduceTerrainDistance,
+					SetMultisampleTo2x:    currentVer.Settings.SetMultisampleTo2x,
+					SetShadowLOD0:         currentVer.Settings.SetShadowLOD0,
+					EnableLibSiliconPatch: currentVer.Settings.EnableLibSiliconPatch,
 				},
 			}
 		}
 	}
-	
+
 	// Generate debug log content
 	debugContent := debug.GenerateDebugLog(debugInfo, gameVersionInfo)
-	
+
 	// Create text entry with debug log content
 	debugTextEntry := widget.NewMultiLineEntry()
 	debugTextEntry.SetText(debugContent)
 	debugTextEntry.Wrapping = fyne.TextWrapOff
-	
+
 	// Create scrollable container for the text
 	scrollContainer := container.NewScroll(debugTextEntry)
-	
+
 	// Create copy button
 	copyButton := widget.NewButton("Copy to Clipboard", func() {
 		currentWindow.Clipboard().SetContent(debugContent)
 		dialog.ShowInformation("Copied", "Debug log copied to clipboard!", currentWindow)
 	})
 	copyButton.Importance = widget.HighImportance
-	
+
 	// Create close button
 	closeButton := widget.NewButton("Close", func() {})
-	
+
 	// Create buttons container
 	buttonsContainer := container.NewHBox(
 		copyButton,
 		widget.NewSeparator(),
 		closeButton,
 	)
-	
+
 	// Create title
 	titleLabel := widget.NewLabel("Debug Log")
 	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
-	
+
 	instructionLabel := widget.NewLabel("Copy this debug information and send it to support:")
 	instructionLabel.TextStyle = fyne.TextStyle{Italic: true}
-	
+
 	// Create main content
 	content := container.NewBorder(
 		container.NewVBox(titleLabel, instructionLabel, widget.NewSeparator()), // top
-		buttonsContainer,                                                        // bottom
-		nil,                                                                     // left
-		nil,                                                                     // right
-		scrollContainer,                                                         // center
+		buttonsContainer, // bottom
+		nil,              // left
+		nil,              // right
+		scrollContainer,  // center
 	)
-	
+
 	// Create popup
 	popup := widget.NewModalPopUp(container.NewPadded(content), currentWindow.Canvas())
-	
+
 	// Set close button action
 	closeButton.OnTapped = func() {
 		popup.Hide()
 	}
-	
+
 	// Set popup size (80% of window size)
 	canvasSize := currentWindow.Canvas().Size()
 	popupWidth := canvasSize.Width * 0.8
 	popupHeight := canvasSize.Height * 0.8
 	popup.Resize(fyne.NewSize(popupWidth, popupHeight))
-	
+
 	popup.Show()
 }
 
 // showTroubleshootingPopup creates and shows a popup window for troubleshooting actions
 func showTroubleshootingPopup() {
 	if currentWindow == nil {
+		return
+	}
+
+	// Get current version for version-specific troubleshooting options
+	currentVer := GetCurrentVersion()
+	if currentVer == nil {
+		dialog.ShowError(fmt.Errorf("no current version selected"), currentWindow)
 		return
 	}
 
@@ -406,6 +406,36 @@ func showTroubleshootingPopup() {
 	troubleshootingTitle := widget.NewLabel("Troubleshooting")
 	troubleshootingTitle.TextStyle = fyne.TextStyle{Bold: true}
 
+	// Base troubleshooting content
+	content := container.NewVBox(
+		troubleshootingTitle,
+		widget.NewSeparator(),
+	)
+
+	// Version-specific content
+	if currentVer.ID == "turtlesilicon" {
+		// TurtleWoW-specific section
+		turtleTitle := widget.NewLabel("TurtleWoW Specific")
+		turtleTitle.TextStyle = fyne.TextStyle{Bold: true}
+
+		downloadButton := widget.NewButton("Download Fresh Installation", func() {
+			downloadURL := "http://eudl.turtle-wow.org/twmoa_1172.zip"
+			// Open URL in browser
+			cmd := exec.Command("open", downloadURL)
+			if err := cmd.Start(); err != nil {
+				dialog.ShowError(fmt.Errorf("Failed to open download URL: %v", err), currentWindow)
+			}
+		})
+		downloadButton.Importance = widget.HighImportance
+
+		rowDownload := container.NewBorder(nil, nil, widget.NewLabel("Download fresh TurtleWoW client:"), downloadButton, nil)
+
+		content.Add(turtleTitle)
+		content.Add(widget.NewSeparator())
+		content.Add(rowDownload)
+		content.Add(widget.NewSeparator())
+	}
+
 	rowCrossover := container.NewBorder(nil, nil, widget.NewLabel("CrossOver version:"), crossoverStatusShort, nil)
 	rowWDB := container.NewBorder(nil, nil, widget.NewLabel("Delete WDB directory (cache):"), wdbDeleteButton, nil)
 	rowWine := container.NewBorder(nil, nil, widget.NewLabel("Delete Wine prefixes (~/.wine & TurtleWoW/.wine):"), wineDeleteButton, nil)
@@ -415,18 +445,14 @@ func showTroubleshootingPopup() {
 	appMgmtNote.Wrapping = fyne.TextWrapWord
 	appMgmtNote.TextStyle = fyne.TextStyle{Italic: true}
 
-	content := container.NewVBox(
-		troubleshootingTitle,
-		widget.NewSeparator(),
-		rowCrossover,
-		crossoverStatusDetail,
-		rowWDB,
-		rowWine,
-		rowVanillaTweaks,
-		rowDebugLog,
-		widget.NewSeparator(),
-		appMgmtNote,
-	)
+	content.Add(rowCrossover)
+	content.Add(crossoverStatusDetail)
+	content.Add(rowWDB)
+	content.Add(rowWine)
+	content.Add(rowVanillaTweaks)
+	content.Add(rowDebugLog)
+	content.Add(widget.NewSeparator())
+	content.Add(appMgmtNote)
 
 	scrollContainer := container.NewScroll(content)
 
@@ -517,7 +543,7 @@ func isCrossoverVersionRecommended(version string) bool {
 	if len(parts) < 2 {
 		return false
 	}
-	
+
 	// Convert version parts to integers for proper comparison
 	major, err := strconv.Atoi(parts[0])
 	if err != nil {
@@ -527,7 +553,7 @@ func isCrossoverVersionRecommended(version string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	// Handle patch version (default to 0 if not present)
 	patch := 0
 	if len(parts) >= 3 {
@@ -536,7 +562,7 @@ func isCrossoverVersionRecommended(version string) bool {
 			return false
 		}
 	}
-	
+
 	// Check if version >= 25.0.1
 	if major > 25 {
 		return true
@@ -621,27 +647,27 @@ func deleteWDBDirectoriesInPopup() {
 func deleteVanillaTweaksFile() {
 	currentVer := GetCurrentVersion()
 	gamePath := ""
-	
+
 	if currentVer != nil && currentVer.GamePath != "" {
 		gamePath = currentVer.GamePath
 	} else {
 		// Fall back to legacy path
 		gamePath = paths.TurtlewowPath
 	}
-	
+
 	if gamePath == "" {
 		dialog.ShowError(fmt.Errorf("No game path set. Cannot locate WoW_tweaked.exe."), currentWindow)
 		return
 	}
-	
+
 	wowTweakedPath := filepath.Join(gamePath, "WoW_tweaked.exe")
-	
+
 	// Check if file exists
 	if _, err := os.Stat(wowTweakedPath); os.IsNotExist(err) {
 		dialog.ShowInformation("Not Found", "WoW_tweaked.exe not found in game directory.", currentWindow)
 		return
 	}
-	
+
 	// Confirm deletion
 	msg := fmt.Sprintf("Are you sure you want to delete WoW_tweaked.exe?\n\nFile location: %s\n\nThis is only necessary after applying a new patch.", wowTweakedPath)
 	dialog.NewConfirm("Delete Vanilla Tweaks", msg, func(confirm bool) {

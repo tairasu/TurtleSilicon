@@ -55,14 +55,12 @@ var (
 	reduceTerrainDistanceCheckbox *widget.Check
 	setMultisampleTo2xCheckbox    *widget.Check
 	setShadowLOD0Checkbox         *widget.Check
-	libSiliconPatchCheckbox       *widget.Check
 	applyGraphicsSettingsButton   *widget.Button
 
 	// Graphics settings help buttons
 	reduceTerrainDistanceHelpButton *widget.Button
 	setMultisampleTo2xHelpButton    *widget.Button
 	setShadowLOD0HelpButton         *widget.Button
-	libSiliconPatchHelpButton       *widget.Button
 
 	// Window reference for popup functionality
 	currentWindow fyne.Window

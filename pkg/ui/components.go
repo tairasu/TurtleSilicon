@@ -9,6 +9,7 @@ import (
 	"turtlesilicon/pkg/addons"
 	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/launcher"
+	"turtlesilicon/pkg/mods"
 	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/paths"
 	"turtlesilicon/pkg/service"
@@ -227,10 +228,20 @@ func createBottomBar(myWindow fyne.Window) fyne.CanvasObject {
 		addonManager.ShowAddonManager()
 	})
 
+	// Mods button
+	modsButton := widget.NewButton("Mods", func() {
+		vm := GetCurrentVersionManager()
+		if vm != nil {
+			modManager := mods.NewModManager(myWindow, vm)
+			modManager.ShowModManager()
+		}
+	})
+
 	leftButtons := container.NewHBox(
 		optionsButton,
 		troubleshootingButton,
 		addonsButton,
+		modsButton,
 		githubButton,
 	)
 
@@ -589,28 +600,6 @@ func createGraphicsSettingsComponents() {
 	})
 	setShadowLOD0HelpButton.Importance = widget.MediumImportance
 
-	// Create Enable libSiliconPatch setting with help button
-	libSiliconPatchCheckbox = widget.NewCheck("", func(checked bool) {
-		currentVer := GetCurrentVersion()
-		if currentVer != nil {
-			currentVer.Settings.EnableLibSiliconPatch = checked
-			// Track if user manually disabled this setting
-			if !checked {
-				currentVer.Settings.UserDisabledLibSiliconPatch = true
-			} else {
-				currentVer.Settings.UserDisabledLibSiliconPatch = false
-			}
-			SaveCurrentVersion(currentVer)
-		}
-		debug.Printf("Enable libSiliconPatch: %v (user manually changed)", checked)
-		updateApplyGraphicsSettingsButton()
-	})
-	libSiliconPatchCheckbox.SetChecked(currentVer.Settings.EnableLibSiliconPatch)
-
-	libSiliconPatchHelpButton = widget.NewButton("?", func() {
-		showGraphicsSettingHelpPopup("Enable libSiliconPatch", "Hooks into the WoW process and replaces slow X87 instructions with SSE2 instructions that Rosetta can translate much quicker, resulting in an increase in FPS (2x or more). May potentially cause graphical bugs.", "Very High Performance Impact")
-	})
-	libSiliconPatchHelpButton.Importance = widget.MediumImportance
 
 	applyGraphicsSettingsButton = widget.NewButton("Apply Graphics Settings", func() {
 		// Use version-specific settings
@@ -680,9 +669,6 @@ func refreshGraphicsSettingsCheckboxes() {
 	}
 	if setShadowLOD0Checkbox != nil {
 		setShadowLOD0Checkbox.SetChecked(currentVer.Settings.SetShadowLOD0)
-	}
-	if libSiliconPatchCheckbox != nil {
-		libSiliconPatchCheckbox.SetChecked(currentVer.Settings.EnableLibSiliconPatch)
 	}
 
 	// Update the apply button state

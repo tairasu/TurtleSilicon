@@ -27,9 +27,23 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 		return
 	}
 
-	targetWinerosettaDll := filepath.Join(paths.TurtlewowPath, "winerosetta.dll")
-	targetD3d9Dll := filepath.Join(paths.TurtlewowPath, "d3d9.dll")
-	targetLibSiliconPatchDll := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
+	// Create mods directory if it doesn't exist
+	modsDir := filepath.Join(paths.TurtlewowPath, "mods")
+	if !utils.DirExists(modsDir) {
+		debug.Printf("Creating mods directory: %s", modsDir)
+		if err := os.MkdirAll(modsDir, 0755); err != nil {
+			errMsg := fmt.Sprintf("failed to create mods directory: %v", err)
+			dialog.ShowError(errors.New(errMsg), myWindow)
+			debug.Println(errMsg)
+			paths.PatchesAppliedTurtleWoW = false
+			updateAllStatuses()
+			return
+		}
+	}
+
+	targetWinerosettaDll := filepath.Join(modsDir, "winerosetta.dll")
+	targetD3d9Dll := filepath.Join(paths.TurtlewowPath, "d3d9.dll") // d3d9.dll stays in root
+	targetLibSiliconPatchDll := filepath.Join(modsDir, "libSiliconPatch.dll")
 	targetRosettaX87Dir := filepath.Join(paths.TurtlewowPath, "rosettax87")
 	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
 	filesToCopy := map[string]string{
@@ -173,37 +187,50 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 	}
 
 	debug.Printf("Checking dlls.txt file at: %s", dllsTextFile)
-	winerosettaEntry := "winerosetta.dll"
-	libSiliconPatchEntry := "libSiliconPatch.dll"
+	winerosettaEntry := "mods/winerosetta.dll"
+	libSiliconPatchEntry := "mods/libSiliconPatch.dll"
 	needsWinerosettaUpdate := true
 	needsLibSiliconPatchUpdate := true
-
-	// Check user's preference for libSiliconPatch and shadowLOD
-	prefs, _ := utils.LoadPrefs()
 
 	// Enable by default unless user has explicitly disabled them
 	shouldEnableLibSiliconPatch := true
 	shouldEnableShadowLOD := true
 
-	// If user has manually disabled these settings, respect their choice
-	if prefs.UserDisabledLibSiliconPatch {
-		shouldEnableLibSiliconPatch = false
-		debug.Printf("libSiliconPatch disabled by user choice")
+	// Get current version settings
+	vm, err := version.LoadVersionManager()
+	if err != nil {
+		debug.Printf("Warning: failed to load version manager: %v", err)
+		// Fall back to enable by default (variables already set above)
 	} else {
-		// Enable by default and update preferences
-		prefs.EnableLibSiliconPatch = true
-	}
+		currentVer, err := vm.GetCurrentVersion()
+		if err != nil {
+			debug.Printf("Warning: failed to get current version: %v", err)
+			// Fall back to enable by default (variables already set above)
+		} else {
+			// Check if user has explicitly disabled them
+			shouldEnableLibSiliconPatch = !currentVer.Settings.UserDisabledLibSiliconPatch
+			shouldEnableShadowLOD = !currentVer.Settings.UserDisabledShadowLOD
 
-	if prefs.UserDisabledShadowLOD {
-		shouldEnableShadowLOD = false
-		debug.Printf("shadowLOD disabled by user choice")
-	} else {
-		// Enable by default and update preferences
-		prefs.SetShadowLOD0 = true
-	}
+			if currentVer.Settings.UserDisabledLibSiliconPatch {
+				debug.Printf("libSiliconPatch disabled by user choice")
+			} else {
+				// Enable by default and update settings
+				currentVer.Settings.EnableLibSiliconPatch = true
+				debug.Printf("libSiliconPatch enabled by default (new user or not explicitly disabled)")
+			}
 
-	// Save updated preferences
-	utils.SavePrefs(prefs)
+			if currentVer.Settings.UserDisabledShadowLOD {
+				debug.Printf("shadowLOD disabled by user choice")
+			} else {
+				// Enable by default and update settings
+				currentVer.Settings.SetShadowLOD0 = true
+				debug.Printf("shadowLOD enabled by default (new user or not explicitly disabled)")
+			}
+
+			// Save updated version settings
+			vm.UpdateVersion(currentVer)
+		}
+	}
 
 	if fileContentBytes, err := os.ReadFile(dllsTextFile); err == nil {
 		fileContent := string(fileContentBytes)
@@ -372,9 +399,10 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 	}
 
 	// Files to remove
-	winerosettaDllPath := filepath.Join(paths.TurtlewowPath, "winerosetta.dll")
+	modsDir := filepath.Join(paths.TurtlewowPath, "mods")
+	winerosettaDllPath := filepath.Join(modsDir, "winerosetta.dll")
 	d3d9DllPath := filepath.Join(paths.TurtlewowPath, "d3d9.dll")
-	libSiliconPatchDllPath := filepath.Join(paths.TurtlewowPath, "libSiliconPatch.dll")
+	libSiliconPatchDllPath := filepath.Join(modsDir, "libSiliconPatch.dll")
 	rosettaX87DirPath := filepath.Join(paths.TurtlewowPath, "rosettax87")
 	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
 
@@ -419,7 +447,9 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 
 			for _, line := range lines {
 				trimmedLine := strings.TrimSpace(line)
-				if trimmedLine != "winerosetta.dll" && trimmedLine != "libSiliconPatch.dll" {
+				// Remove both old and new format entries
+				if trimmedLine != "winerosetta.dll" && trimmedLine != "libSiliconPatch.dll" && 
+				   trimmedLine != "mods/winerosetta.dll" && trimmedLine != "mods/libSiliconPatch.dll" {
 					filteredLines = append(filteredLines, line)
 				}
 			}
@@ -871,14 +901,16 @@ func LoadGraphicsSettingsFromConfig() error {
 	currentVer.Settings.SetShadowLOD0 = isConfigSettingCorrect(configText, "shadowLOD", "0")
 
 	// Check libSiliconPatch status (DLL exists and enabled in dlls.txt)
-	libSiliconPatchPath := filepath.Join(currentVer.GamePath, "libSiliconPatch.dll")
+	libSiliconPatchPath := filepath.Join(currentVer.GamePath, "mods", "libSiliconPatch.dll")
 	dllsTextFile := filepath.Join(currentVer.GamePath, "dlls.txt")
 	libSiliconPatchExists := utils.PathExists(libSiliconPatchPath)
 	libSiliconPatchEnabled := false
 
 	if libSiliconPatchExists && utils.PathExists(dllsTextFile) {
 		if dllsContent, err := os.ReadFile(dllsTextFile); err == nil {
-			libSiliconPatchEnabled = strings.Contains(string(dllsContent), "libSiliconPatch.dll")
+			content := string(dllsContent)
+			// Check for both old and new format entries
+			libSiliconPatchEnabled = strings.Contains(content, "mods/libSiliconPatch.dll") || strings.Contains(content, "libSiliconPatch.dll")
 		}
 	}
 	currentVer.Settings.EnableLibSiliconPatch = libSiliconPatchExists && libSiliconPatchEnabled
@@ -913,7 +945,7 @@ func CheckGraphicsSettingsPresence() {
 		return
 	}
 
-	libSiliconPatchPath := filepath.Join(currentVer.GamePath, "libSiliconPatch.dll")
+	libSiliconPatchPath := filepath.Join(currentVer.GamePath, "mods", "libSiliconPatch.dll")
 	dllsTextFile := filepath.Join(currentVer.GamePath, "dlls.txt")
 
 	// Check if libSiliconPatch.dll exists
@@ -924,7 +956,8 @@ func CheckGraphicsSettingsPresence() {
 	if utils.PathExists(dllsTextFile) {
 		if fileContentBytes, err := os.ReadFile(dllsTextFile); err == nil {
 			fileContent := string(fileContentBytes)
-			libSiliconPatchEnabled = strings.Contains(fileContent, "libSiliconPatch.dll")
+			// Check for both old and new format entries
+			libSiliconPatchEnabled = strings.Contains(fileContent, "mods/libSiliconPatch.dll") || strings.Contains(fileContent, "libSiliconPatch.dll")
 		}
 	}
 
@@ -969,7 +1002,7 @@ func enableLibSiliconPatchInDlls() error {
 	}
 
 	dllsTextFile := filepath.Join(paths.TurtlewowPath, "dlls.txt")
-	libSiliconPatchEntry := "libSiliconPatch.dll"
+	libSiliconPatchEntry := "mods/libSiliconPatch.dll"
 
 	var fileContentBytes []byte
 	var err error
@@ -1023,7 +1056,8 @@ func disableLibSiliconPatchInDlls() error {
 
 	for _, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine != "libSiliconPatch.dll" {
+		// Remove both old and new format entries
+		if trimmedLine != "libSiliconPatch.dll" && trimmedLine != "mods/libSiliconPatch.dll" {
 			filteredLines = append(filteredLines, line)
 		}
 	}

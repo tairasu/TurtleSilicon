@@ -56,7 +56,9 @@ var DefaultVersions = map[string]*GameVersion{
 		SupportsDLLLoading:    true,
 		UsesRosettaPatching:   true,
 		UsesDivxDecoderPatch:  false,
-		Settings:              VersionSettings{},
+		Settings: VersionSettings{
+			AutoDeleteWdb: true, // Enable by default
+		},
 	},
 	"epochsilicon": {
 		ID:                    "epochsilicon",
@@ -66,8 +68,10 @@ var DefaultVersions = map[string]*GameVersion{
 		SupportsVanillaTweaks: false,
 		SupportsDLLLoading:    true,
 		UsesRosettaPatching:   false,
-		UsesDivxDecoderPatch:  true,
-		Settings:              VersionSettings{},
+		UsesDivxDecoderPatch:  false,
+		Settings: VersionSettings{
+			AutoDeleteWdb: true, // Enable by default
+		},
 	},
 	"vanillasilicon": {
 		ID:                    "vanillasilicon",
@@ -78,7 +82,9 @@ var DefaultVersions = map[string]*GameVersion{
 		SupportsDLLLoading:    false,
 		UsesRosettaPatching:   false,
 		UsesDivxDecoderPatch:  true,
-		Settings:              VersionSettings{},
+		Settings: VersionSettings{
+			AutoDeleteWdb: true, // Enable by default
+		},
 	},
 	"burningsilicon": {
 		ID:                    "burningsilicon",
@@ -89,7 +95,9 @@ var DefaultVersions = map[string]*GameVersion{
 		SupportsDLLLoading:    false,
 		UsesRosettaPatching:   false,
 		UsesDivxDecoderPatch:  true,
-		Settings:              VersionSettings{},
+		Settings: VersionSettings{
+			AutoDeleteWdb: true, // Enable by default
+		},
 	},
 	"wrathsilicon": {
 		ID:                    "wrathsilicon",
@@ -99,8 +107,10 @@ var DefaultVersions = map[string]*GameVersion{
 		SupportsVanillaTweaks: false,
 		SupportsDLLLoading:    true,
 		UsesRosettaPatching:   false,
-		UsesDivxDecoderPatch:  true,
-		Settings:              VersionSettings{},
+		UsesDivxDecoderPatch:  false,
+		Settings: VersionSettings{
+			AutoDeleteWdb: true, // Enable by default
+		},
 	},
 }
 

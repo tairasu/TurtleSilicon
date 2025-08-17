@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	pulsingActive = false
+	pulsingActive               = false
 	statusUpdateCallback func() = nil
 )
 
@@ -102,7 +102,7 @@ func updateVersionStatus() {
 		turtlewowPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: currentVer.GamePath, Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
 
 		// Check if patches are Applied using version-aware checking
-		patchesApplied := patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch)
+		patchesApplied := patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch, currentVer.ID)
 		if patchesApplied {
 			turtlewowStatusLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: "Applied", Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
 			// Update button states - patches applied
@@ -174,7 +174,7 @@ func updateTurtleWoWStatus() {
 		turtlewowPathLabel.Segments = []widget.RichTextSegment{&widget.TextSegment{Text: paths.TurtlewowPath, Style: widget.RichTextStyle{ColorName: theme.ColorNameSuccess}}}
 
 		// Use version-aware checking for legacy fallback
-		patchesApplied := patching.CheckVersionPatchingStatus(paths.TurtlewowPath, true, false) // Assuming legacy is rosetta patching
+		patchesApplied := patching.CheckVersionPatchingStatus(paths.TurtlewowPath, true, false, "turtlesilicon") // Assuming legacy is rosetta patching
 		paths.PatchesAppliedTurtleWoW = patchesApplied
 	}
 	turtlewowPathLabel.Refresh()
@@ -211,7 +211,7 @@ func updatePlayButtonState() {
 	currentVer := GetCurrentVersion()
 	if currentVer != nil {
 		// Check if both game and CrossOver paths are set
-		gamePatchesApplied := currentVer.GamePath != "" && patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch)
+		gamePatchesApplied := currentVer.GamePath != "" && patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch, currentVer.ID)
 
 		// Check CrossOver status
 		crossoverPatchesApplied := false
@@ -308,7 +308,7 @@ func updateServiceStatus() {
 
 			if currentVer != nil && currentVer.GamePath != "" {
 				// Check if patches are applied for current version
-				patchesApplied := patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch)
+				patchesApplied := patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch, currentVer.ID)
 				canStartService = patchesApplied
 			} else if paths.TurtlewowPath != "" {
 				// Fallback to legacy system
@@ -368,4 +368,3 @@ func TriggerStatusUpdate() {
 		statusUpdateCallback()
 	}
 }
-

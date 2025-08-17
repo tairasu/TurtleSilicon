@@ -1074,8 +1074,8 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 		return true
 	}
 
-	// For TurtleSilicon, check full rosettax87 patches (winerosetta.dll, d3d9.dll, etc.)
-	winerosettaDll := filepath.Join(gamePath, "winerosetta.dll")
+	// For TurtleSilicon, check full rosettax87 patches (winerosetta.dll in mods/, d3d9.dll in root, etc.)
+	winerosettaDll := filepath.Join(gamePath, "mods", "winerosetta.dll")
 	d3d9Dll := filepath.Join(gamePath, "d3d9.dll")
 	rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
 
@@ -1084,8 +1084,8 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 		return false
 	}
 
-	// Check dlls.txt to ensure winerosetta.dll is properly registered
-	if !isDllRegisteredInDllsTxt(gamePath, "winerosetta.dll") {
+	// Check dlls.txt to ensure winerosetta.dll is properly registered (check for both old and new format)
+	if !isDllRegisteredInDllsTxt(gamePath, "mods/winerosetta.dll") && !isDllRegisteredInDllsTxt(gamePath, "winerosetta.dll") {
 		debug.Printf("Patch verification failed: winerosetta.dll not found in dlls.txt for %s", gamePath)
 		return false
 	}

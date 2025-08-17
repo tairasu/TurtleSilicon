@@ -315,6 +315,9 @@ func onVersionChanged(selectedDisplayName string, myWindow fyne.Window) {
 	// Update the logo to match the new version
 	updateLogoForVersion(selectedVersionID)
 
+	// Refresh main content to show/hide new user helper based on new version
+	RefreshMainContentForPathChange()
+
 	// For EpochSilicon, automatically check for updates if already patched
 	if selectedVersionID == "epochsilicon" && currentVersion != nil && currentVersion.GamePath != "" {
 		// Check if we're already patched by looking for required files
@@ -449,16 +452,6 @@ func updateVersionSettings() {
 	if setShadowLOD0Checkbox != nil {
 		setShadowLOD0Checkbox.SetChecked(settings.SetShadowLOD0)
 	}
-	if libSiliconPatchCheckbox != nil {
-		// libSiliconPatch is only available for TurtleSilicon
-		if currentVersion.ID == "turtlesilicon" {
-			libSiliconPatchCheckbox.SetChecked(settings.EnableLibSiliconPatch)
-			libSiliconPatchCheckbox.Enable()
-		} else {
-			libSiliconPatchCheckbox.SetChecked(false)
-			libSiliconPatchCheckbox.Disable()
-		}
-	}
 
 	// Update environment variables entry
 	if envVarsEntry != nil {
@@ -482,15 +475,6 @@ func updateVersionCapabilities() {
 		}
 	}
 
-	// Update libSiliconPatch checkbox availability (TurtleSilicon only)
-	if libSiliconPatchCheckbox != nil {
-		if currentVersion.ID == "turtlesilicon" {
-			libSiliconPatchCheckbox.Enable()
-		} else {
-			libSiliconPatchCheckbox.Disable()
-			libSiliconPatchCheckbox.SetChecked(false)
-		}
-	}
 }
 
 // GetCurrentVersionManager returns the current version manager
@@ -565,9 +549,6 @@ func RefreshUIForCurrentVersion() {
 	if setShadowLOD0Checkbox != nil {
 		setShadowLOD0Checkbox.SetChecked(currentVersion.Settings.SetShadowLOD0)
 	}
-	if libSiliconPatchCheckbox != nil {
-		libSiliconPatchCheckbox.SetChecked(currentVersion.Settings.EnableLibSiliconPatch)
-	}
 }
 
 // Version-aware path selection
@@ -640,6 +621,9 @@ func setGamePathForCurrentVersion(myWindow fyne.Window, selectedPath string) {
 	debug.Printf("Game path set for version %s: %s", currentVersion.ID, selectedPath)
 	updateVersionPathLabels()
 	UpdateAllStatuses()
+
+	// Refresh main content to hide/show new user helper
+	RefreshMainContentForPathChange()
 
 	// For EpochSilicon, check required files and offer to download missing ones
 	if currentVersion.ID == "epochsilicon" {
@@ -759,10 +743,10 @@ func PatchCurrentVersion(myWindow fyne.Window) {
 
 // proceedWithPatching performs the actual patching operation
 func proceedWithPatching(myWindow fyne.Window) {
-	patching.PatchVersionGame(myWindow, UpdateAllStatuses, currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch)
+	patching.PatchVersionGame(myWindow, UpdateAllStatuses, currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch, currentVersion.ExecutableName, currentVersion.ID)
 
 	// Update patching status
-	gamePatched := patching.CheckVersionPatchingStatus(currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch)
+	gamePatched := patching.CheckVersionPatchingStatus(currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch, currentVersion.ID)
 	crossoverPatched, _ := paths.GetVersionPatchingStatus(currentVersion.ID)
 	paths.SetVersionPatchingStatus(currentVersion.ID, gamePatched, crossoverPatched)
 }
@@ -774,10 +758,10 @@ func UnpatchCurrentVersion(myWindow fyne.Window) {
 		return
 	}
 
-	patching.UnpatchVersionGame(myWindow, UpdateAllStatuses, currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch)
+	patching.UnpatchVersionGame(myWindow, UpdateAllStatuses, currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch, currentVersion.ID)
 
 	// Update patching status
-	gamePatched := patching.CheckVersionPatchingStatus(currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch)
+	gamePatched := patching.CheckVersionPatchingStatus(currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch, currentVersion.ID)
 	crossoverPatched, _ := paths.GetVersionPatchingStatus(currentVersion.ID)
 	paths.SetVersionPatchingStatus(currentVersion.ID, gamePatched, crossoverPatched)
 }
