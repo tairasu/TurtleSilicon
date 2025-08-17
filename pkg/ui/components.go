@@ -600,7 +600,6 @@ func createGraphicsSettingsComponents() {
 	})
 	setShadowLOD0HelpButton.Importance = widget.MediumImportance
 
-
 	applyGraphicsSettingsButton = widget.NewButton("Apply Graphics Settings", func() {
 		// Use version-specific settings
 		currentVer := GetCurrentVersion()

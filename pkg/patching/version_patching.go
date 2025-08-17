@@ -59,7 +59,7 @@ func patchWithOriginalDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses 
 
 	// Show progress popup and run entire patching process in background
 	debug.Printf("Starting DivX decoder patching process")
-	
+
 	// Create and show progress popup
 	progressPopup := createPatchingProgressPopup(myWindow)
 	progressPopup.Show()
@@ -69,7 +69,7 @@ func patchWithOriginalDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses 
 		// Step 1: Create backup of existing DivxDecoder.dll if it exists
 		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
 		divxDecoderBackupPath := filepath.Join(gamePath, "DivxDecoder.dll.backup")
-		
+
 		if utils.PathExists(divxDecoderPath) {
 			debug.Printf("Creating backup of existing DivxDecoder.dll at: %s", divxDecoderBackupPath)
 
@@ -293,14 +293,13 @@ func patchWithOriginalDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses 
 	}()
 }
 
-// patchWithLibDllLdrMethod implements the new libDllLdr.dll patching method for other versions  
+// patchWithLibDllLdrMethod implements the new libDllLdr.dll patching method for other versions
 func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), gamePath string, executableName string) {
 	debug.Println("Applying libDllLdr.dll patching method")
 
-
 	// Show progress popup and run entire patching process in background
 	debug.Printf("Starting libDllLdr.dll patching process")
-	
+
 	// Create and show progress popup
 	progressPopup := createPatchingProgressPopup(myWindow)
 	progressPopup.Show()
@@ -618,7 +617,7 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 			return
 		}
 		debug.Printf("Verified libDllLdr.dll exists at: %s", libDllLdrPath)
-		
+
 		if !utils.PathExists(winerosettaDllPath) {
 			fyne.DoAndWait(func() {
 				progressPopup.Hide()
@@ -630,7 +629,7 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 			return
 		}
 		debug.Printf("Verified winerosetta.dll exists at: %s", winerosettaDllPath)
-		
+
 		if !utils.PathExists(d3d9DllPath) {
 			fyne.DoAndWait(func() {
 				progressPopup.Hide()
@@ -647,7 +646,7 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 		patchedExePath := filepath.Join(gamePath, patchedExecutableName)
 		if utils.PathExists(patchedExePath) {
 			debug.Printf("Patched executable already exists, skipping rundll32 command: %s", patchedExePath)
-			
+
 			fyne.DoAndWait(func() {
 				progressPopup.Hide()
 				dialog.ShowInformation("Success", "Game patching completed successfully.", myWindow)
@@ -657,7 +656,7 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 		}
 		// Step 8: Run wine rundll32 command to generate patched executable
 		debug.Printf("Patched executable not found, generating it with wine rundll32")
-		
+
 		// Get CrossOver wineloader path (same directory as wineloader2, not the /bin/wine)
 		crossoverPath := paths.CrossoverPath
 		if crossoverPath == "" {
@@ -705,19 +704,19 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 		// Execute the command with environment variables to avoid bottles
 		execCmd := exec.Command(cmd[0], cmd[1:]...)
 		execCmd.Dir = gamePath
-		
+
 		// Create a temporary wine prefix to avoid using bottles
 		tempDir := filepath.Join(os.TempDir(), "turtlesilicon_wine_temp")
-		os.RemoveAll(tempDir) // Clean up any existing temp directory
+		os.RemoveAll(tempDir)       // Clean up any existing temp directory
 		defer os.RemoveAll(tempDir) // Clean up after we're done
-		
+
 		// Set environment variables with temporary wine prefix
 		execCmd.Env = append(os.Environ(),
 			"WINEPREFIX="+tempDir, // Use temporary directory instead of bottles
-			"WINEARCH=win64", // Set architecture
-			"WINEDLLOVERRIDES=", // Clear any DLL overrides
+			"WINEARCH=win64",      // Set architecture
+			"WINEDLLOVERRIDES=",   // Clear any DLL overrides
 		)
-		
+
 		if output, err := execCmd.CombinedOutput(); err != nil {
 			fyne.DoAndWait(func() {
 				progressPopup.Hide() // Hide progress popup on error
@@ -780,7 +779,7 @@ func UnpatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath
 		// Check which files exist to determine the method used
 		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
 		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
-		
+
 		if utils.PathExists(libDllLdrPath) {
 			// libDllLdr approach was used
 			unpatchWithLibDllLdrMethod(myWindow, updateAllStatuses, gamePath)
@@ -886,17 +885,17 @@ func unpatchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), 
 	dllsPath := filepath.Join(gamePath, "dlls.txt")
 	if utils.PathExists(dllsPath) {
 		debug.Printf("Removing winerosetta.dll entry from dlls.txt")
-		
+
 		content, err := os.ReadFile(dllsPath)
 		if err != nil {
 			debug.Printf("Warning: failed to read dlls.txt: %v", err)
 		} else {
 			contentStr := string(content)
-			
+
 			// Remove "winerosetta.dll\n" or "winerosetta.dll" at end
 			newContent := strings.ReplaceAll(contentStr, "winerosetta.dll\n", "")
 			newContent = strings.TrimSuffix(newContent, "winerosetta.dll")
-			
+
 			if newContent != contentStr {
 				if err := os.WriteFile(dllsPath, []byte(newContent), 0644); err != nil {
 					debug.Printf("Warning: failed to update dlls.txt: %v", err)
@@ -920,7 +919,7 @@ func unpatchWithOriginalDivxDecoderMethod(myWindow fyne.Window, updateAllStatuse
 	// Remove DivxDecoder.dll and restore backup if it exists
 	divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
 	divxDecoderBackupPath := filepath.Join(gamePath, "DivxDecoder.dll.backup")
-	
+
 	if utils.PathExists(divxDecoderPath) {
 		debug.Printf("Removing DivxDecoder.dll at: %s", divxDecoderPath)
 		if err := os.Remove(divxDecoderPath); err != nil {
@@ -930,7 +929,7 @@ func unpatchWithOriginalDivxDecoderMethod(myWindow fyne.Window, updateAllStatuse
 			debug.Printf("Successfully removed DivxDecoder.dll")
 		}
 	}
-	
+
 	// Restore backup if it exists
 	if utils.PathExists(divxDecoderBackupPath) {
 		debug.Printf("Restoring backup DivxDecoder.dll from: %s", divxDecoderBackupPath)
@@ -996,64 +995,64 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 		// For non-TurtleSilicon versions, determine which approach was used
 		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
 		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
-		
+
 		if utils.PathExists(libDllLdrPath) {
 			// libDllLdr approach - check for libDllLdr.dll, winerosetta.dll, d3d9.dll, and patched executables
 			winerosettaDllPath := filepath.Join(gamePath, "winerosetta.dll")
 			d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
-			
+
 			// Check that winerosetta.dll exists
 			if !utils.PathExists(winerosettaDllPath) {
 				debug.Printf("Patch verification failed: winerosetta.dll not found at %s", winerosettaDllPath)
 				return false
 			}
-			
+
 			// Check that d3d9.dll exists
 			if !utils.PathExists(d3d9DllPath) {
 				debug.Printf("Patch verification failed: d3d9.dll not found at %s", d3d9DllPath)
 				return false
 			}
-			
+
 			// Check for patched executable (either Wow_patched.exe or Project-Epoch_patched.exe)
 			wowPatchedPath := filepath.Join(gamePath, "Wow_patched.exe")
 			projectEpochPatchedPath := filepath.Join(gamePath, "Project-Epoch_patched.exe")
-			
+
 			if !utils.PathExists(wowPatchedPath) && !utils.PathExists(projectEpochPatchedPath) {
 				debug.Printf("Patch verification failed: no patched executable found (Wow_patched.exe or Project-Epoch_patched.exe)")
 				return false
 			}
-			
+
 			// Check dlls.txt to ensure winerosetta.dll is properly registered
 			if !isDllRegisteredInDllsTxt(gamePath, "winerosetta.dll") {
 				debug.Printf("Patch verification failed: winerosetta.dll not found in dlls.txt for %s", gamePath)
 				return false
 			}
-			
+
 			debug.Printf("✓ libDllLdr.dll patch verification passed for %s", gamePath)
 		} else if utils.PathExists(divxDecoderPath) {
 			// Original DivX decoder approach - check for DivxDecoder.dll and d3d9.dll
 			d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
-			
+
 			// Check that d3d9.dll exists
 			if !utils.PathExists(d3d9DllPath) {
 				debug.Printf("Patch verification failed: d3d9.dll not found at %s", d3d9DllPath)
 				return false
 			}
-			
+
 			debug.Printf("✓ Original DivX decoder patch verification passed for %s", gamePath)
 		} else {
 			// No patches found
 			debug.Printf("Patch verification failed: no patching method detected for %s", gamePath)
 			return false
 		}
-		
+
 		// Check for rosettax87 directory and files (common to both approaches)
 		rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
 		if !utils.DirExists(rosettaX87Dir) {
 			debug.Printf("Patch verification failed: rosettax87 directory not found at %s", rosettaX87Dir)
 			return false
 		}
-		
+
 		// Verify rosettax87 binary files with hash/size verification
 		rosettax87Path := filepath.Join(rosettaX87Dir, "rosettax87")
 		libRuntimeRosettax87Path := filepath.Join(rosettaX87Dir, "libRuntimeRosettax87")
@@ -1065,12 +1064,12 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 			debug.Printf("Patch verification failed: rosettax87 binary invalid or missing at %s", rosettax87Path)
 			return false
 		}
-		
+
 		if !libRuntimeValid {
 			debug.Printf("Patch verification failed: libRuntimeRosettax87 invalid or missing at %s", libRuntimeRosettax87Path)
 			return false
 		}
-		
+
 		return true
 	}
 
@@ -1141,14 +1140,14 @@ func createPatchingProgressPopup(myWindow fyne.Window) *widget.PopUp {
 	// Create progress message
 	titleLabel := widget.NewLabel("Patching Game")
 	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
-	
+
 	messageLabel := widget.NewLabel("Please wait while the game is being patched...")
 	messageLabel.Wrapping = fyne.TextWrapWord
-	
+
 	// Create a progress bar (indeterminate)
 	progressBar := widget.NewProgressBarInfinite()
 	progressBar.Start()
-	
+
 	// Create content container
 	content := container.NewVBox(
 		titleLabel,
@@ -1157,15 +1156,15 @@ func createPatchingProgressPopup(myWindow fyne.Window) *widget.PopUp {
 		widget.NewSeparator(),
 		progressBar,
 	)
-	
+
 	// Create the popup
 	popup := widget.NewModalPopUp(
 		container.NewPadded(content),
 		myWindow.Canvas(),
 	)
-	
+
 	// Set popup size
 	popup.Resize(fyne.NewSize(300, 150))
-	
+
 	return popup
 }

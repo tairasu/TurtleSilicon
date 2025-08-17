@@ -448,8 +448,8 @@ func UnpatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			for _, line := range lines {
 				trimmedLine := strings.TrimSpace(line)
 				// Remove both old and new format entries
-				if trimmedLine != "winerosetta.dll" && trimmedLine != "libSiliconPatch.dll" && 
-				   trimmedLine != "mods/winerosetta.dll" && trimmedLine != "mods/libSiliconPatch.dll" {
+				if trimmedLine != "winerosetta.dll" && trimmedLine != "libSiliconPatch.dll" &&
+					trimmedLine != "mods/winerosetta.dll" && trimmedLine != "mods/libSiliconPatch.dll" {
 					filteredLines = append(filteredLines, line)
 				}
 			}
