@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -251,7 +252,7 @@ func showTroubleshootingPopup() {
 		crossoverStatusDetail = widget.NewLabelWithStyle("✔ Recommended version of CrossOver installed", fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
 	} else {
 		crossoverStatusShort = widget.NewLabelWithStyle("⚠️ "+crossoverVersion, fyne.TextAlignTrailing, fyne.TextStyle{Italic: true})
-		crossoverStatusDetail = widget.NewLabelWithStyle("⚠️ Please update to CrossOver 25.0.1 or later!", fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
+		crossoverStatusDetail = widget.NewLabelWithStyle("⚠️ Please update to a newer version of CrossOver!", fyne.TextAlignLeading, fyne.TextStyle{Italic: true})
 	}
 	crossoverStatusDetail.Wrapping = fyne.TextWrapWord
 
@@ -389,17 +390,40 @@ func getCrossoverVersion(appPath string) string {
 // isCrossoverVersionRecommended returns true if version >= 25.0.1
 func isCrossoverVersionRecommended(version string) bool {
 	parts := strings.Split(version, ".")
-	if len(parts) < 3 {
+	if len(parts) < 2 {
 		return false
 	}
-	major := parts[0]
-	minor := parts[1]
-	patch := parts[2]
-	if major > "25" {
+	
+	// Convert version parts to integers for proper comparison
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return false
+	}
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return false
+	}
+	
+	// Handle patch version (default to 0 if not present)
+	patch := 0
+	if len(parts) >= 3 {
+		patch, err = strconv.Atoi(parts[2])
+		if err != nil {
+			return false
+		}
+	}
+	
+	// Check if version >= 25.0.1
+	if major > 25 {
 		return true
 	}
-	if major == "25" && minor >= "0" && patch >= "1" {
-		return true
+	if major == 25 {
+		if minor > 0 {
+			return true
+		}
+		if minor == 0 && patch >= 1 {
+			return true
+		}
 	}
 	return false
 }
