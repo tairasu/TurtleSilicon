@@ -18,6 +18,7 @@ import (
 	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/paths"
 	"turtlesilicon/pkg/utils"
+	"turtlesilicon/pkg/version"
 )
 
 // showOptionsPopup creates and shows an integrated popup window for options
@@ -234,6 +235,114 @@ func showRemapWarningPopup() {
 	warningPopup.Show()
 }
 
+// showDebugLogPopup creates and shows a popup window with debug log content
+func showDebugLogPopup() {
+	if currentWindow == nil {
+		return
+	}
+
+	// Create debug info structure
+	debugInfo := &debug.DebugInfo{
+		CrossoverPath:            paths.CrossoverPath,
+		TurtlewowPath:            paths.TurtlewowPath,
+		PatchesAppliedTurtleWoW:  paths.PatchesAppliedTurtleWoW,
+		PatchesAppliedCrossOver:  paths.PatchesAppliedCrossOver,
+		RosettaX87ServiceRunning: paths.RosettaX87ServiceRunning,
+		ServiceStarting:          paths.ServiceStarting,
+	}
+	
+	// Get current version info
+	var gameVersionInfo *debug.GameVersionInfo = nil
+	if vm, err := version.LoadVersionManager(); err == nil {
+		if currentVer, err := vm.GetCurrentVersion(); err == nil {
+			gameVersionInfo = &debug.GameVersionInfo{
+				ID:                    currentVer.ID,
+				DisplayName:           currentVer.DisplayName,
+				WoWVersion:            currentVer.WoWVersion,
+				GamePath:              currentVer.GamePath,
+				ExecutableName:        currentVer.ExecutableName,
+				SupportsVanillaTweaks: currentVer.SupportsVanillaTweaks,
+				SupportsDLLLoading:    currentVer.SupportsDLLLoading,
+				UsesRosettaPatching:   currentVer.UsesRosettaPatching,
+				UsesDivxDecoderPatch:  currentVer.UsesDivxDecoderPatch,
+				Settings: debug.GameVersionSettings{
+					EnableVanillaTweaks:     currentVer.Settings.EnableVanillaTweaks,
+					RemapOptionAsAlt:        currentVer.Settings.RemapOptionAsAlt,
+					AutoDeleteWdb:           currentVer.Settings.AutoDeleteWdb,
+					EnableMetalHud:          currentVer.Settings.EnableMetalHud,
+					SaveSudoPassword:        currentVer.Settings.SaveSudoPassword,
+					ShowTerminalNormally:    currentVer.Settings.ShowTerminalNormally,
+					EnvironmentVariables:    currentVer.Settings.EnvironmentVariables,
+					ReduceTerrainDistance:   currentVer.Settings.ReduceTerrainDistance,
+					SetMultisampleTo2x:      currentVer.Settings.SetMultisampleTo2x,
+					SetShadowLOD0:           currentVer.Settings.SetShadowLOD0,
+					EnableLibSiliconPatch:   currentVer.Settings.EnableLibSiliconPatch,
+				},
+			}
+		}
+	}
+	
+	// Generate debug log content
+	debugContent := debug.GenerateDebugLog(debugInfo, gameVersionInfo)
+	
+	// Create text entry with debug log content
+	debugTextEntry := widget.NewMultiLineEntry()
+	debugTextEntry.SetText(debugContent)
+	debugTextEntry.Wrapping = fyne.TextWrapOff
+	
+	// Create scrollable container for the text
+	scrollContainer := container.NewScroll(debugTextEntry)
+	
+	// Create copy button
+	copyButton := widget.NewButton("Copy to Clipboard", func() {
+		currentWindow.Clipboard().SetContent(debugContent)
+		dialog.ShowInformation("Copied", "Debug log copied to clipboard!", currentWindow)
+	})
+	copyButton.Importance = widget.HighImportance
+	
+	// Create close button
+	closeButton := widget.NewButton("Close", func() {})
+	
+	// Create buttons container
+	buttonsContainer := container.NewHBox(
+		copyButton,
+		widget.NewSeparator(),
+		closeButton,
+	)
+	
+	// Create title
+	titleLabel := widget.NewLabel("Debug Log")
+	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
+	
+	instructionLabel := widget.NewLabel("Copy this debug information and send it to support:")
+	instructionLabel.TextStyle = fyne.TextStyle{Italic: true}
+	
+	// Create main content
+	content := container.NewBorder(
+		container.NewVBox(titleLabel, instructionLabel, widget.NewSeparator()), // top
+		buttonsContainer,                                                        // bottom
+		nil,                                                                     // left
+		nil,                                                                     // right
+		scrollContainer,                                                         // center
+	)
+	
+	// Create popup
+	popup := widget.NewModalPopUp(container.NewPadded(content), currentWindow.Canvas())
+	
+	// Set close button action
+	closeButton.OnTapped = func() {
+		popup.Hide()
+	}
+	
+	// Set popup size (80% of window size)
+	canvasSize := currentWindow.Canvas().Size()
+	popupWidth := canvasSize.Width * 0.8
+	popupHeight := canvasSize.Height * 0.8
+	popup.Resize(fyne.NewSize(popupWidth, popupHeight))
+	
+	popup.Show()
+}
+
 // showTroubleshootingPopup creates and shows a popup window for troubleshooting actions
 func showTroubleshootingPopup() {
 	if currentWindow == nil {
@@ -284,12 +393,18 @@ func showTroubleshootingPopup() {
 		}, currentWindow).Show()
 	})
 
+	// --- Generate Debug Log ---
+	debugLogButton := widget.NewButton("Show Debug Log", func() {
+		showDebugLogPopup()
+	})
+
 	troubleshootingTitle := widget.NewLabel("Troubleshooting")
 	troubleshootingTitle.TextStyle = fyne.TextStyle{Bold: true}
 
 	rowCrossover := container.NewBorder(nil, nil, widget.NewLabel("CrossOver version:"), crossoverStatusShort, nil)
 	rowWDB := container.NewBorder(nil, nil, widget.NewLabel("Delete WDB directory (cache):"), wdbDeleteButton, nil)
 	rowWine := container.NewBorder(nil, nil, widget.NewLabel("Delete Wine prefixes (~/.wine & TurtleWoW/.wine):"), wineDeleteButton, nil)
+	rowDebugLog := container.NewBorder(nil, nil, widget.NewLabel("Show debug log for support:"), debugLogButton, nil)
 	appMgmtNote := widget.NewLabel("Please ensure TurtleSilicon is enabled in System Settings > Privacy & Security > App Management.")
 	appMgmtNote.Wrapping = fyne.TextWrapWord
 	appMgmtNote.TextStyle = fyne.TextStyle{Italic: true}
@@ -301,6 +416,8 @@ func showTroubleshootingPopup() {
 		crossoverStatusDetail,
 		rowWDB,
 		rowWine,
+		rowDebugLog,
+		widget.NewSeparator(),
 		appMgmtNote,
 	)
 
