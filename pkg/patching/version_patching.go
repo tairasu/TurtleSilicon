@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -14,12 +15,14 @@ import (
 	"turtlesilicon/pkg/utils"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/widget"
 )
 
 // PatchVersionGame patches a game version based on its configuration
-func PatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath string, usesRosettaPatching bool, usesDivxDecoderPatch bool) {
-	debug.Printf("Patching game at path: %s, rosetta=%v, divx=%v", gamePath, usesRosettaPatching, usesDivxDecoderPatch)
+func PatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath string, usesRosettaPatching bool, usesDivxDecoderPatch bool, executableName string, versionID string) {
+	debug.Printf("Patching game at path: %s, rosetta=%v, divx=%v, executable=%s, version=%s", gamePath, usesRosettaPatching, usesDivxDecoderPatch, executableName, versionID)
 
 	if gamePath == "" {
 		dialog.ShowError(fmt.Errorf("game path not set. Please set it first."), myWindow)
@@ -27,8 +30,16 @@ func PatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath s
 	}
 
 	if usesDivxDecoderPatch {
-		// For non-TurtleSilicon versions, only apply DivxDecoder replacement
-		patchWithDivxDecoderMethod(myWindow, updateAllStatuses, gamePath)
+		// For non-TurtleSilicon versions, determine which approach to use
+		// BurningSilicon and VanillaSilicon use the original DivX decoder approach
+		// Other versions use the new libDllLdr approach
+		if versionID == "burningsilicon" || versionID == "vanillasilicon" {
+			// BurningSilicon and VanillaSilicon need the original DivX decoder approach
+			patchWithOriginalDivxDecoderMethod(myWindow, updateAllStatuses, gamePath)
+		} else {
+			// Other versions (WrathSilicon, EpochSilicon, etc.) use the new libDllLdr approach
+			patchWithLibDllLdrMethod(myWindow, updateAllStatuses, gamePath, executableName)
+		}
 	} else {
 		// For TurtleSilicon, use the full rosettax87 patching
 		// Temporarily set paths.TurtlewowPath so existing patching works
@@ -42,196 +53,705 @@ func PatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath s
 	}
 }
 
-// patchWithDivxDecoderMethod implements the new patching method for other versions
-func patchWithDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses func(), gamePath string) {
-	debug.Println("Applying DivxDecoder patching method")
+// patchWithOriginalDivxDecoderMethod implements the original DivX decoder patching method for BurningSilicon
+func patchWithOriginalDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses func(), gamePath string) {
+	debug.Println("Applying original DivX decoder patching method")
 
-	divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
-	divxDecoderBackupPath := filepath.Join(gamePath, "DivxDecoder.dll.backup")
-	d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
+	// Show progress popup and run entire patching process in background
+	debug.Printf("Starting DivX decoder patching process")
+	
+	// Create and show progress popup
+	progressPopup := createPatchingProgressPopup(myWindow)
+	progressPopup.Show()
 
-	// Step 1: Create backup of existing DivxDecoder.dll if it exists
-	if utils.PathExists(divxDecoderPath) {
-		debug.Printf("Creating backup of existing DivxDecoder.dll at: %s", divxDecoderBackupPath)
+	// Run the patching process in a goroutine to keep UI responsive
+	go func() {
+		// Step 1: Create backup of existing DivxDecoder.dll if it exists
+		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
+		divxDecoderBackupPath := filepath.Join(gamePath, "DivxDecoder.dll.backup")
+		
+		if utils.PathExists(divxDecoderPath) {
+			debug.Printf("Creating backup of existing DivxDecoder.dll at: %s", divxDecoderBackupPath)
 
-		// Read the original file
-		originalData, err := os.ReadFile(divxDecoderPath)
-		if err != nil {
-			errMsg := fmt.Sprintf("failed to read existing DivxDecoder.dll: %v", err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
-			updateAllStatuses()
-			return
-		}
-
-		// Write the backup
-		if err := os.WriteFile(divxDecoderBackupPath, originalData, 0644); err != nil {
-			errMsg := fmt.Sprintf("failed to create backup of DivxDecoder.dll: %v", err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
-			updateAllStatuses()
-			return
-		}
-		debug.Printf("Successfully created backup of DivxDecoder.dll")
-
-		// Remove the original file
-		if err := os.Remove(divxDecoderPath); err != nil {
-			errMsg := fmt.Sprintf("failed to remove existing DivxDecoder.dll: %v", err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
-			updateAllStatuses()
-			return
-		}
-		debug.Printf("Successfully removed original DivxDecoder.dll")
-	}
-
-	// Step 2: Copy winerosetta.dll to the game directory as DivxDecoder.dll
-	debug.Printf("Copying winerosetta.dll as DivxDecoder.dll to: %s", divxDecoderPath)
-
-	resource, err := fyne.LoadResourceFromPath("winerosetta/winerosetta.dll")
-	if err != nil {
-		errMsg := fmt.Sprintf("failed to open bundled winerosetta.dll resource: %v", err)
-		dialog.ShowError(errors.New(errMsg), myWindow)
-		debug.Println(errMsg)
-		updateAllStatuses()
-		return
-	}
-
-	destinationFile, err := os.Create(divxDecoderPath)
-	if err != nil {
-		errMsg := fmt.Sprintf("failed to create DivxDecoder.dll file: %v", err)
-		dialog.ShowError(errors.New(errMsg), myWindow)
-		debug.Println(errMsg)
-		updateAllStatuses()
-		return
-	}
-	defer destinationFile.Close()
-
-	_, err = io.Copy(destinationFile, bytes.NewReader(resource.Content()))
-	if err != nil {
-		errMsg := fmt.Sprintf("failed to copy winerosetta.dll as DivxDecoder.dll: %v", err)
-		dialog.ShowError(errors.New(errMsg), myWindow)
-		debug.Println(errMsg)
-		updateAllStatuses()
-		return
-	}
-
-	debug.Printf("Successfully copied winerosetta.dll as DivxDecoder.dll")
-
-	// Step 3: Copy d3d9.dll for graphics
-	debug.Printf("Copying d3d9.dll to: %s", d3d9DllPath)
-
-	d3d9Resource, err := fyne.LoadResourceFromPath("winerosetta/d3d9.dll")
-	if err != nil {
-		errMsg := fmt.Sprintf("failed to open bundled d3d9.dll resource: %v", err)
-		dialog.ShowError(errors.New(errMsg), myWindow)
-		debug.Println(errMsg)
-		updateAllStatuses()
-		return
-	}
-
-	d3d9File, err := os.Create(d3d9DllPath)
-	if err != nil {
-		errMsg := fmt.Sprintf("failed to create d3d9.dll file: %v", err)
-		dialog.ShowError(errors.New(errMsg), myWindow)
-		debug.Println(errMsg)
-		updateAllStatuses()
-		return
-	}
-	defer d3d9File.Close()
-
-	_, err = io.Copy(d3d9File, bytes.NewReader(d3d9Resource.Content()))
-	if err != nil {
-		errMsg := fmt.Sprintf("failed to copy d3d9.dll: %v", err)
-		dialog.ShowError(errors.New(errMsg), myWindow)
-		debug.Println(errMsg)
-		updateAllStatuses()
-		return
-	}
-
-	debug.Printf("Successfully copied d3d9.dll")
-
-	// Step 4: Copy rosettax87 service files (each version gets its own)
-	rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
-	if !utils.DirExists(rosettaX87Dir) {
-		if err := os.MkdirAll(rosettaX87Dir, 0755); err != nil {
-			errMsg := fmt.Sprintf("failed to create rosettax87 directory: %v", err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
-			updateAllStatuses()
-			return
-		}
-		debug.Printf("Created rosettax87 directory: %s", rosettaX87Dir)
-	}
-
-	// Copy rosettax87 executable files
-	rosettaFilesToCopy := map[string]string{
-		"rosettax87/rosettax87":           filepath.Join(rosettaX87Dir, "rosettax87"),
-		"rosettax87/libRuntimeRosettax87": filepath.Join(rosettaX87Dir, "libRuntimeRosettax87"),
-	}
-
-	for resourceName, destPath := range rosettaFilesToCopy {
-		debug.Printf("Processing rosetta resource: %s to %s", resourceName, destPath)
-
-		// Check if file already exists and has correct size and hash
-		if utils.PathExists(destPath) && utils.CompareFileWithBundledResource(destPath, resourceName) {
-			debug.Printf("File %s already exists with correct size and hash, skipping copy", destPath)
-
-			// Ensure executable permission for all rosettax87 files
-			if err := os.Chmod(destPath, 0755); err != nil {
-				debug.Printf("Warning: failed to set execute permission for existing %s: %v", destPath, err)
+			originalData, err := os.ReadFile(divxDecoderPath)
+			if err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to read existing DivxDecoder.dll: %v", err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
 			}
-			continue
+
+			if err := os.WriteFile(divxDecoderBackupPath, originalData, 0644); err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to create backup of DivxDecoder.dll: %v", err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+			debug.Printf("Successfully created backup of DivxDecoder.dll")
+
+			if err := os.Remove(divxDecoderPath); err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to remove existing DivxDecoder.dll: %v", err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+			debug.Printf("Successfully removed original DivxDecoder.dll")
 		}
 
-		if utils.PathExists(destPath) {
-			debug.Printf("File %s exists but has incorrect size/hash, updating...", destPath)
-		} else {
-			debug.Printf("File %s does not exist, creating...", destPath)
-		}
+		// Step 2: Copy winerosetta.dll as DivxDecoder.dll
+		debug.Printf("Copying winerosetta.dll as DivxDecoder.dll to: %s", divxDecoderPath)
 
-		resource, err := fyne.LoadResourceFromPath(resourceName)
+		winerosettaResource, err := fyne.LoadResourceFromPath("winerosetta/winerosetta.dll")
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
-			updateAllStatuses()
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to open bundled winerosetta.dll resource: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
 			return
 		}
 
-		destinationFile, err := os.Create(destPath)
+		divxFile, err := os.Create(divxDecoderPath)
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to create destination file %s: %v", destPath, err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
-			updateAllStatuses()
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to create DivxDecoder.dll file: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		defer divxFile.Close()
+
+		_, err = io.Copy(divxFile, bytes.NewReader(winerosettaResource.Content()))
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to copy winerosetta.dll as DivxDecoder.dll: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		debug.Printf("Successfully copied winerosetta.dll as DivxDecoder.dll")
+
+		// Step 3: Copy d3d9.dll
+		d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
+		debug.Printf("Copying d3d9.dll to: %s", d3d9DllPath)
+
+		d3d9Resource, err := fyne.LoadResourceFromPath("winerosetta/d3d9.dll")
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to open bundled d3d9.dll resource: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
 			return
 		}
 
-		_, err = io.Copy(destinationFile, bytes.NewReader(resource.Content()))
+		d3d9File, err := os.Create(d3d9DllPath)
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to copy bundled resource to %s: %v", destPath, err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to create d3d9.dll file: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		defer d3d9File.Close()
+
+		_, err = io.Copy(d3d9File, bytes.NewReader(d3d9Resource.Content()))
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to copy d3d9.dll: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		debug.Printf("Successfully copied d3d9.dll")
+
+		// Step 4: Copy rosettax87 service files (same as libDllLdr method)
+		rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
+		if !utils.DirExists(rosettaX87Dir) {
+			if err := os.MkdirAll(rosettaX87Dir, 0755); err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to create rosettax87 directory: %v", err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+			debug.Printf("Created rosettax87 directory: %s", rosettaX87Dir)
+		}
+
+		// Copy rosettax87 executable files
+		rosettaFilesToCopy := map[string]string{
+			"rosettax87/rosettax87":           filepath.Join(rosettaX87Dir, "rosettax87"),
+			"rosettax87/libRuntimeRosettax87": filepath.Join(rosettaX87Dir, "libRuntimeRosettax87"),
+		}
+
+		for resourceName, destPath := range rosettaFilesToCopy {
+			debug.Printf("Processing rosetta resource: %s to %s", resourceName, destPath)
+
+			// Check if file already exists and has correct size and hash
+			if utils.PathExists(destPath) && utils.CompareFileWithBundledResource(destPath, resourceName) {
+				debug.Printf("File %s already exists with correct size and hash, skipping copy", destPath)
+				if err := os.Chmod(destPath, 0755); err != nil {
+					debug.Printf("Warning: failed to set execute permission for existing %s: %v", destPath, err)
+				}
+				continue
+			}
+
+			if utils.PathExists(destPath) {
+				debug.Printf("File %s exists but has incorrect size/hash, updating...", destPath)
+			} else {
+				debug.Printf("File %s does not exist, creating...", destPath)
+			}
+
+			resource, err := fyne.LoadResourceFromPath(resourceName)
+			if err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+
+			destinationFile, err := os.Create(destPath)
+			if err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to create destination file %s: %v", destPath, err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+
+			_, err = io.Copy(destinationFile, bytes.NewReader(resource.Content()))
+			if err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to copy bundled resource to %s: %v", destPath, err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					destinationFile.Close()
+					updateAllStatuses()
+				})
+				return
+			}
 			destinationFile.Close()
+
+			if err := os.Chmod(destPath, 0755); err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to make %s executable: %v", destPath, err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+			debug.Printf("Successfully copied and made executable: %s to %s", resourceName, destPath)
+		}
+
+		// Success - update UI on main thread
+		fyne.DoAndWait(func() {
+			progressPopup.Hide()
+			dialog.ShowInformation("Success", "Game patching completed successfully.", myWindow)
 			updateAllStatuses()
+		})
+	}()
+}
+
+// patchWithLibDllLdrMethod implements the new libDllLdr.dll patching method for other versions  
+func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), gamePath string, executableName string) {
+	debug.Println("Applying libDllLdr.dll patching method")
+
+
+	// Show progress popup and run entire patching process in background
+	debug.Printf("Starting libDllLdr.dll patching process")
+	
+	// Create and show progress popup
+	progressPopup := createPatchingProgressPopup(myWindow)
+	progressPopup.Show()
+
+	// Run the patching process in a goroutine to keep UI responsive
+	go func() {
+		// Determine patched executable name based on the provided executable
+		var patchedExecutableName string
+		if executableName == "Project-Epoch.exe" {
+			patchedExecutableName = "Project-Epoch_patched.exe"
+			debug.Printf("Using Project-Epoch.exe for EpochSilicon")
+		} else {
+			// Default to Wow.exe for all other versions
+			executableName = "Wow.exe"
+			patchedExecutableName = "Wow_patched.exe"
+			debug.Printf("Using Wow.exe for standard WoW game")
+		}
+
+		// Step 1: Verify game directory exists and copy libDllLdr.dll from winerosetta directory to game path
+		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
+		debug.Printf("Copying libDllLdr.dll to: %s", libDllLdrPath)
+
+		// First verify that the game directory exists
+		if !utils.DirExists(gamePath) {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("Game directory does not exist: %s", gamePath)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
 			return
 		}
-		destinationFile.Close()
+		debug.Printf("Game directory verified: %s", gamePath)
 
-		// Make rosettax87 executable
-		if err := os.Chmod(destPath, 0755); err != nil {
-			errMsg := fmt.Sprintf("failed to make %s executable: %v", destPath, err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
-			updateAllStatuses()
+		// Test write permissions by creating a temporary file
+		testFilePath := filepath.Join(gamePath, "test_write_permissions.tmp")
+		if testFile, err := os.Create(testFilePath); err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("Cannot write to game directory (permission denied): %s\nError: %v", gamePath, err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		} else {
+			testFile.Close()
+			os.Remove(testFilePath) // Clean up test file
+			debug.Printf("Write permissions verified for game directory")
+		}
+
+		libDllLdrResource, err := fyne.LoadResourceFromPath("winerosetta/libDllLdr.dll")
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to open bundled libDllLdr.dll resource: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
 			return
 		}
-		debug.Printf("Successfully copied and made executable: %s to %s", resourceName, destPath)
-	}
 
-	dialog.ShowInformation("Success", "Game patching completed successfully.", myWindow)
-	updateAllStatuses()
+		libDllLdrFile, err := os.Create(libDllLdrPath)
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to create libDllLdr.dll file at %s: %v\nGame directory: %s\nDirectory exists: %v", libDllLdrPath, err, gamePath, utils.DirExists(gamePath))
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		defer libDllLdrFile.Close()
+
+		_, err = io.Copy(libDllLdrFile, bytes.NewReader(libDllLdrResource.Content()))
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to copy libDllLdr.dll: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		debug.Printf("Successfully copied libDllLdr.dll")
+
+		// Step 2: Copy winerosetta.dll from bundled resources to game path
+		winerosettaDllPath := filepath.Join(gamePath, "winerosetta.dll")
+		debug.Printf("Copying winerosetta.dll to: %s", winerosettaDllPath)
+
+		winerosettaResource, err := fyne.LoadResourceFromPath("winerosetta/winerosetta.dll")
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to open bundled winerosetta.dll resource: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+
+		winerosettaFile, err := os.Create(winerosettaDllPath)
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to create winerosetta.dll file: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		defer winerosettaFile.Close()
+
+		_, err = io.Copy(winerosettaFile, bytes.NewReader(winerosettaResource.Content()))
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to copy winerosetta.dll: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		debug.Printf("Successfully copied winerosetta.dll")
+
+		// Step 3: Copy d3d9.dll from bundled resources to game path
+		d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
+		debug.Printf("Copying d3d9.dll to: %s", d3d9DllPath)
+
+		d3d9Resource, err := fyne.LoadResourceFromPath("winerosetta/d3d9.dll")
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to open bundled d3d9.dll resource: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+
+		d3d9File, err := os.Create(d3d9DllPath)
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to create d3d9.dll file: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		defer d3d9File.Close()
+
+		_, err = io.Copy(d3d9File, bytes.NewReader(d3d9Resource.Content()))
+		if err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("failed to copy d3d9.dll: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		debug.Printf("Successfully copied d3d9.dll")
+
+		// Step 4: Create/update dlls.txt with winerosetta.dll entry (moved inside goroutine)
+		dllsPath := filepath.Join(gamePath, "dlls.txt")
+		debug.Printf("Creating/updating dlls.txt at: %s", dllsPath)
+
+		// Check if dlls.txt already contains winerosetta.dll
+		if !isDllRegisteredInDllsTxt(gamePath, "winerosetta.dll") {
+			// Read existing content or start with empty
+			var existingContent string
+			if utils.PathExists(dllsPath) {
+				if content, err := os.ReadFile(dllsPath); err == nil {
+					existingContent = string(content)
+				}
+			}
+
+			// Ensure content ends with newline if it's not empty
+			if existingContent != "" && !strings.HasSuffix(existingContent, "\n") {
+				existingContent += "\n"
+			}
+
+			// Add winerosetta.dll entry
+			newContent := existingContent + "winerosetta.dll\n"
+
+			if err := os.WriteFile(dllsPath, []byte(newContent), 0644); err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to write dlls.txt: %v", err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+			debug.Printf("Successfully updated dlls.txt with winerosetta.dll entry")
+		} else {
+			debug.Printf("winerosetta.dll already registered in dlls.txt")
+		}
+
+		// Step 5: Copy rosettax87 service files (required for the patching process)
+		rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
+		if !utils.DirExists(rosettaX87Dir) {
+			if err := os.MkdirAll(rosettaX87Dir, 0755); err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to create rosettax87 directory: %v", err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+			debug.Printf("Created rosettax87 directory: %s", rosettaX87Dir)
+		}
+
+		// Copy rosettax87 executable files
+		rosettaFilesToCopy := map[string]string{
+			"rosettax87/rosettax87":           filepath.Join(rosettaX87Dir, "rosettax87"),
+			"rosettax87/libRuntimeRosettax87": filepath.Join(rosettaX87Dir, "libRuntimeRosettax87"),
+		}
+
+		for resourceName, destPath := range rosettaFilesToCopy {
+			debug.Printf("Processing rosetta resource: %s to %s", resourceName, destPath)
+
+			// Check if file already exists and has correct size and hash
+			if utils.PathExists(destPath) && utils.CompareFileWithBundledResource(destPath, resourceName) {
+				debug.Printf("File %s already exists with correct size and hash, skipping copy", destPath)
+
+				// Ensure executable permission for all rosettax87 files
+				if err := os.Chmod(destPath, 0755); err != nil {
+					debug.Printf("Warning: failed to set execute permission for existing %s: %v", destPath, err)
+				}
+				continue
+			}
+
+			if utils.PathExists(destPath) {
+				debug.Printf("File %s exists but has incorrect size/hash, updating...", destPath)
+			} else {
+				debug.Printf("File %s does not exist, creating...", destPath)
+			}
+
+			resource, err := fyne.LoadResourceFromPath(resourceName)
+			if err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to open bundled resource %s: %v", resourceName, err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+
+			destinationFile, err := os.Create(destPath)
+			if err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to create destination file %s: %v", destPath, err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+
+			_, err = io.Copy(destinationFile, bytes.NewReader(resource.Content()))
+			if err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to copy bundled resource to %s: %v", destPath, err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					destinationFile.Close()
+					updateAllStatuses()
+				})
+				return
+			}
+			destinationFile.Close()
+
+			// Make rosettax87 executable
+			if err := os.Chmod(destPath, 0755); err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to make %s executable: %v", destPath, err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+			debug.Printf("Successfully copied and made executable: %s to %s", resourceName, destPath)
+		}
+
+		// Step 6: Verify libDllLdr.dll, winerosetta.dll, and d3d9.dll were created successfully before proceeding
+		if !utils.PathExists(libDllLdrPath) {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("libDllLdr.dll was not created successfully at: %s", libDllLdrPath)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		debug.Printf("Verified libDllLdr.dll exists at: %s", libDllLdrPath)
+		
+		if !utils.PathExists(winerosettaDllPath) {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("winerosetta.dll was not created successfully at: %s", winerosettaDllPath)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		debug.Printf("Verified winerosetta.dll exists at: %s", winerosettaDllPath)
+		
+		if !utils.PathExists(d3d9DllPath) {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				errMsg := fmt.Sprintf("d3d9.dll was not created successfully at: %s", d3d9DllPath)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		debug.Printf("Verified d3d9.dll exists at: %s", d3d9DllPath)
+
+		// Step 7: Check if patched executable already exists - skip rundll32 if it does
+		patchedExePath := filepath.Join(gamePath, patchedExecutableName)
+		if utils.PathExists(patchedExePath) {
+			debug.Printf("Patched executable already exists, skipping rundll32 command: %s", patchedExePath)
+			
+			fyne.DoAndWait(func() {
+				progressPopup.Hide()
+				dialog.ShowInformation("Success", "Game patching completed successfully.", myWindow)
+				updateAllStatuses()
+			})
+			return
+		}
+		// Step 8: Run wine rundll32 command to generate patched executable
+		debug.Printf("Patched executable not found, generating it with wine rundll32")
+		
+		// Get CrossOver wineloader path (same directory as wineloader2, not the /bin/wine)
+		crossoverPath := paths.CrossoverPath
+		if crossoverPath == "" {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide() // Hide progress popup on error
+				errMsg := "CrossOver path not set. Cannot run wine command."
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+
+		wineloaderPath := filepath.Join(crossoverPath, "Contents", "SharedSupport", "CrossOver", "CrossOver-Hosted Application", "wineloader")
+		if !utils.PathExists(wineloaderPath) {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide() // Hide progress popup on error
+				errMsg := fmt.Sprintf("Wine loader not found at: %s", wineloaderPath)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+
+		// Change to game directory and run the wine command
+		originalDir, _ := os.Getwd()
+		if err := os.Chdir(gamePath); err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide() // Hide progress popup on error
+				errMsg := fmt.Sprintf("failed to change to game directory: %v", err)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+		defer os.Chdir(originalDir)
+
+		// Run: wine rundll32 libDllLdr.dll,RunDll32Entry Wow.exe (or Project-Epoch.exe)
+		// Using wineloader (original wine) without any bottles
+		cmd := []string{wineloaderPath, "rundll32", "libDllLdr.dll,RunDll32Entry", executableName}
+		debug.Printf("Running command: %v", cmd)
+
+		// Execute the command with environment variables to avoid bottles
+		execCmd := exec.Command(cmd[0], cmd[1:]...)
+		execCmd.Dir = gamePath
+		
+		// Create a temporary wine prefix to avoid using bottles
+		tempDir := filepath.Join(os.TempDir(), "turtlesilicon_wine_temp")
+		os.RemoveAll(tempDir) // Clean up any existing temp directory
+		defer os.RemoveAll(tempDir) // Clean up after we're done
+		
+		// Set environment variables with temporary wine prefix
+		execCmd.Env = append(os.Environ(),
+			"WINEPREFIX="+tempDir, // Use temporary directory instead of bottles
+			"WINEARCH=win64", // Set architecture
+			"WINEDLLOVERRIDES=", // Clear any DLL overrides
+		)
+		
+		if output, err := execCmd.CombinedOutput(); err != nil {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide() // Hide progress popup on error
+				errMsg := fmt.Sprintf("failed to run wine rundll32 command: %v\nOutput: %s", err, string(output))
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		} else {
+			debug.Printf("Wine rundll32 command output: %s", string(output))
+		}
+
+		// Verify that the patched executable was created by rundll32
+		if !utils.PathExists(patchedExePath) {
+			fyne.DoAndWait(func() {
+				progressPopup.Hide() // Hide progress popup on error
+				errMsg := fmt.Sprintf("Patched executable was not created by rundll32: %s", patchedExePath)
+				dialog.ShowError(errors.New(errMsg), myWindow)
+				debug.Println(errMsg)
+				updateAllStatuses()
+			})
+			return
+		}
+
+		debug.Printf("Successfully created patched executable with rundll32: %s", patchedExecutableName)
+
+		// Success - update UI on main thread
+		fyne.DoAndWait(func() {
+			progressPopup.Hide() // Hide progress popup on success
+			dialog.ShowInformation("Success", "Game patching completed successfully.", myWindow)
+			updateAllStatuses()
+		})
+	}()
 }
 
 // patchWithRosettaMethod implements the existing TurtleWoW patching method
@@ -247,8 +767,8 @@ func patchWithRosettaMethod(myWindow fyne.Window, updateAllStatuses func(), game
 }
 
 // UnpatchVersionGame unpatches a game version based on its configuration
-func UnpatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath string, usesRosettaPatching bool, usesDivxDecoderPatch bool) {
-	debug.Printf("Unpatching game at path: %s, rosetta=%v, divx=%v", gamePath, usesRosettaPatching, usesDivxDecoderPatch)
+func UnpatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath string, usesRosettaPatching bool, usesDivxDecoderPatch bool, versionID string) {
+	debug.Printf("Unpatching game at path: %s, rosetta=%v, divx=%v, version=%s", gamePath, usesRosettaPatching, usesDivxDecoderPatch, versionID)
 
 	if gamePath == "" {
 		dialog.ShowError(fmt.Errorf("game path not set. Please set it first."), myWindow)
@@ -256,8 +776,21 @@ func UnpatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath
 	}
 
 	if usesDivxDecoderPatch {
-		// For non-TurtleSilicon versions, only remove DivxDecoder replacement
-		unpatchWithDivxDecoderMethod(myWindow, updateAllStatuses, gamePath)
+		// For non-TurtleSilicon versions, determine which approach to unpatch
+		// Check which files exist to determine the method used
+		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
+		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
+		
+		if utils.PathExists(libDllLdrPath) {
+			// libDllLdr approach was used
+			unpatchWithLibDllLdrMethod(myWindow, updateAllStatuses, gamePath)
+		} else if utils.PathExists(divxDecoderPath) {
+			// Original DivX decoder approach was used
+			unpatchWithOriginalDivxDecoderMethod(myWindow, updateAllStatuses, gamePath)
+		} else {
+			dialog.ShowInformation("Info", "No patches found to remove.", myWindow)
+			updateAllStatuses()
+		}
 	} else {
 		// For TurtleSilicon, use the full rosettax87 unpatching
 		// Temporarily set paths.TurtlewowPath so existing unpatching works
@@ -271,28 +804,154 @@ func UnpatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath
 	}
 }
 
-// unpatchWithDivxDecoderMethod removes the DivxDecoder.dll file and restores backup if available
-func unpatchWithDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses func(), gamePath string) {
-	debug.Println("Removing DivxDecoder patching")
+// unpatchWithLibDllLdrMethod removes the libDllLdr.dll and patched executables
+func unpatchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), gamePath string) {
+	debug.Println("Removing libDllLdr.dll patching")
 
-	divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
-	divxDecoderBackupPath := filepath.Join(gamePath, "DivxDecoder.dll.backup")
-	d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
-
-	// Remove the patched DivxDecoder.dll
-	if utils.PathExists(divxDecoderPath) {
-		debug.Printf("Removing patched DivxDecoder.dll at: %s", divxDecoderPath)
-		if err := os.Remove(divxDecoderPath); err != nil {
-			errMsg := fmt.Sprintf("failed to remove DivxDecoder.dll: %v", err)
+	// Remove libDllLdr.dll
+	libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
+	if utils.PathExists(libDllLdrPath) {
+		debug.Printf("Removing libDllLdr.dll at: %s", libDllLdrPath)
+		if err := os.Remove(libDllLdrPath); err != nil {
+			errMsg := fmt.Sprintf("failed to remove libDllLdr.dll: %v", err)
 			dialog.ShowError(errors.New(errMsg), myWindow)
 			debug.Println(errMsg)
 			updateAllStatuses()
 			return
 		}
-		debug.Printf("Successfully removed patched DivxDecoder.dll")
+		debug.Printf("Successfully removed libDllLdr.dll")
+	}
+
+	// Remove winerosetta.dll
+	winerosettaDllPath := filepath.Join(gamePath, "winerosetta.dll")
+	if utils.PathExists(winerosettaDllPath) {
+		debug.Printf("Removing winerosetta.dll at: %s", winerosettaDllPath)
+		if err := os.Remove(winerosettaDllPath); err != nil {
+			debug.Printf("Warning: failed to remove winerosetta.dll: %v", err)
+			// Don't fail the operation for this
+		} else {
+			debug.Printf("Successfully removed winerosetta.dll")
+		}
 	}
 
 	// Remove d3d9.dll
+	d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
+	if utils.PathExists(d3d9DllPath) {
+		debug.Printf("Removing d3d9.dll at: %s", d3d9DllPath)
+		if err := os.Remove(d3d9DllPath); err != nil {
+			debug.Printf("Warning: failed to remove d3d9.dll: %v", err)
+			// Don't fail the operation for this
+		} else {
+			debug.Printf("Successfully removed d3d9.dll")
+		}
+	}
+
+	// Remove patched executables
+	wowPatchedPath := filepath.Join(gamePath, "Wow_patched.exe")
+	projectEpochPatchedPath := filepath.Join(gamePath, "Project-Epoch_patched.exe")
+
+	if utils.PathExists(wowPatchedPath) {
+		debug.Printf("Removing Wow_patched.exe at: %s", wowPatchedPath)
+		if err := os.Remove(wowPatchedPath); err != nil {
+			debug.Printf("Warning: failed to remove Wow_patched.exe: %v", err)
+			// Don't fail the operation for this
+		} else {
+			debug.Printf("Successfully removed Wow_patched.exe")
+		}
+	}
+
+	if utils.PathExists(projectEpochPatchedPath) {
+		debug.Printf("Removing Project-Epoch_patched.exe at: %s", projectEpochPatchedPath)
+		if err := os.Remove(projectEpochPatchedPath); err != nil {
+			debug.Printf("Warning: failed to remove Project-Epoch_patched.exe: %v", err)
+			// Don't fail the operation for this
+		} else {
+			debug.Printf("Successfully removed Project-Epoch_patched.exe")
+		}
+	}
+
+	// Remove rosettax87 directory
+	rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
+	if utils.DirExists(rosettaX87Dir) {
+		debug.Printf("Removing rosettax87 directory at: %s", rosettaX87Dir)
+		if err := os.RemoveAll(rosettaX87Dir); err != nil {
+			debug.Printf("Warning: failed to remove rosettax87 directory: %v", err)
+			// Don't fail the operation for this
+		} else {
+			debug.Printf("Successfully removed rosettax87 directory")
+		}
+	}
+
+	// Remove winerosetta.dll entry from dlls.txt
+	dllsPath := filepath.Join(gamePath, "dlls.txt")
+	if utils.PathExists(dllsPath) {
+		debug.Printf("Removing winerosetta.dll entry from dlls.txt")
+		
+		content, err := os.ReadFile(dllsPath)
+		if err != nil {
+			debug.Printf("Warning: failed to read dlls.txt: %v", err)
+		} else {
+			contentStr := string(content)
+			
+			// Remove "winerosetta.dll\n" or "winerosetta.dll" at end
+			newContent := strings.ReplaceAll(contentStr, "winerosetta.dll\n", "")
+			newContent = strings.TrimSuffix(newContent, "winerosetta.dll")
+			
+			if newContent != contentStr {
+				if err := os.WriteFile(dllsPath, []byte(newContent), 0644); err != nil {
+					debug.Printf("Warning: failed to update dlls.txt: %v", err)
+				} else {
+					debug.Printf("Successfully removed winerosetta.dll entry from dlls.txt")
+				}
+			} else {
+				debug.Printf("winerosetta.dll entry not found in dlls.txt")
+			}
+		}
+	}
+
+	dialog.ShowInformation("Success", "Game unpatching completed successfully.", myWindow)
+	updateAllStatuses()
+}
+
+// unpatchWithOriginalDivxDecoderMethod removes the original DivX decoder patching for BurningSilicon
+func unpatchWithOriginalDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses func(), gamePath string) {
+	debug.Println("Removing original DivX decoder patching")
+
+	// Remove DivxDecoder.dll and restore backup if it exists
+	divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
+	divxDecoderBackupPath := filepath.Join(gamePath, "DivxDecoder.dll.backup")
+	
+	if utils.PathExists(divxDecoderPath) {
+		debug.Printf("Removing DivxDecoder.dll at: %s", divxDecoderPath)
+		if err := os.Remove(divxDecoderPath); err != nil {
+			debug.Printf("Warning: failed to remove DivxDecoder.dll: %v", err)
+			// Don't fail the operation for this
+		} else {
+			debug.Printf("Successfully removed DivxDecoder.dll")
+		}
+	}
+	
+	// Restore backup if it exists
+	if utils.PathExists(divxDecoderBackupPath) {
+		debug.Printf("Restoring backup DivxDecoder.dll from: %s", divxDecoderBackupPath)
+		backupData, err := os.ReadFile(divxDecoderBackupPath)
+		if err != nil {
+			debug.Printf("Warning: failed to read backup DivxDecoder.dll: %v", err)
+		} else {
+			if err := os.WriteFile(divxDecoderPath, backupData, 0644); err != nil {
+				debug.Printf("Warning: failed to restore backup DivxDecoder.dll: %v", err)
+			} else {
+				debug.Printf("Successfully restored backup DivxDecoder.dll")
+				// Remove the backup file after successful restore
+				if err := os.Remove(divxDecoderBackupPath); err != nil {
+					debug.Printf("Warning: failed to remove backup file: %v", err)
+				}
+			}
+		}
+	}
+
+	// Remove d3d9.dll
+	d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
 	if utils.PathExists(d3d9DllPath) {
 		debug.Printf("Removing d3d9.dll at: %s", d3d9DllPath)
 		if err := os.Remove(d3d9DllPath); err != nil {
@@ -315,40 +974,6 @@ func unpatchWithDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses func()
 		}
 	}
 
-	// Restore the original DivxDecoder.dll from backup if it exists
-	if utils.PathExists(divxDecoderBackupPath) {
-		debug.Printf("Restoring original DivxDecoder.dll from backup: %s", divxDecoderBackupPath)
-
-		// Read the backup file
-		backupData, err := os.ReadFile(divxDecoderBackupPath)
-		if err != nil {
-			errMsg := fmt.Sprintf("failed to read DivxDecoder.dll backup: %v", err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
-			updateAllStatuses()
-			return
-		}
-
-		// Write it back as the original file
-		if err := os.WriteFile(divxDecoderPath, backupData, 0644); err != nil {
-			errMsg := fmt.Sprintf("failed to restore DivxDecoder.dll from backup: %v", err)
-			dialog.ShowError(errors.New(errMsg), myWindow)
-			debug.Println(errMsg)
-			updateAllStatuses()
-			return
-		}
-
-		// Remove the backup file
-		if err := os.Remove(divxDecoderBackupPath); err != nil {
-			debug.Printf("Warning: failed to remove backup file %s: %v", divxDecoderBackupPath, err)
-			// Don't fail the operation for this
-		}
-
-		debug.Printf("Successfully restored original DivxDecoder.dll from backup")
-	} else {
-		debug.Printf("No DivxDecoder.dll backup found, original file was not present")
-	}
-
 	dialog.ShowInformation("Success", "Game unpatching completed successfully.", myWindow)
 	updateAllStatuses()
 }
@@ -362,22 +987,73 @@ func unpatchWithRosettaMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 }
 
 // CheckVersionPatchingStatus checks if a version is properly patched
-func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesDivxDecoderPatch bool) bool {
+func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesDivxDecoderPatch bool, versionID string) bool {
 	if gamePath == "" {
 		return false
 	}
 
 	if usesDivxDecoderPatch {
-		// For non-TurtleSilicon versions, check for DivxDecoder.dll (winerosetta), d3d9.dll, and rosettax87 directory with verification
+		// For non-TurtleSilicon versions, determine which approach was used
+		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
 		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
-		d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
-		rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
-
-		// Check that main files exist and rosettax87 directory exists
-		if !utils.PathExists(divxDecoderPath) || !utils.PathExists(d3d9DllPath) || !utils.DirExists(rosettaX87Dir) {
+		
+		if utils.PathExists(libDllLdrPath) {
+			// libDllLdr approach - check for libDllLdr.dll, winerosetta.dll, d3d9.dll, and patched executables
+			winerosettaDllPath := filepath.Join(gamePath, "winerosetta.dll")
+			d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
+			
+			// Check that winerosetta.dll exists
+			if !utils.PathExists(winerosettaDllPath) {
+				debug.Printf("Patch verification failed: winerosetta.dll not found at %s", winerosettaDllPath)
+				return false
+			}
+			
+			// Check that d3d9.dll exists
+			if !utils.PathExists(d3d9DllPath) {
+				debug.Printf("Patch verification failed: d3d9.dll not found at %s", d3d9DllPath)
+				return false
+			}
+			
+			// Check for patched executable (either Wow_patched.exe or Project-Epoch_patched.exe)
+			wowPatchedPath := filepath.Join(gamePath, "Wow_patched.exe")
+			projectEpochPatchedPath := filepath.Join(gamePath, "Project-Epoch_patched.exe")
+			
+			if !utils.PathExists(wowPatchedPath) && !utils.PathExists(projectEpochPatchedPath) {
+				debug.Printf("Patch verification failed: no patched executable found (Wow_patched.exe or Project-Epoch_patched.exe)")
+				return false
+			}
+			
+			// Check dlls.txt to ensure winerosetta.dll is properly registered
+			if !isDllRegisteredInDllsTxt(gamePath, "winerosetta.dll") {
+				debug.Printf("Patch verification failed: winerosetta.dll not found in dlls.txt for %s", gamePath)
+				return false
+			}
+			
+			debug.Printf("✓ libDllLdr.dll patch verification passed for %s", gamePath)
+		} else if utils.PathExists(divxDecoderPath) {
+			// Original DivX decoder approach - check for DivxDecoder.dll and d3d9.dll
+			d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
+			
+			// Check that d3d9.dll exists
+			if !utils.PathExists(d3d9DllPath) {
+				debug.Printf("Patch verification failed: d3d9.dll not found at %s", d3d9DllPath)
+				return false
+			}
+			
+			debug.Printf("✓ Original DivX decoder patch verification passed for %s", gamePath)
+		} else {
+			// No patches found
+			debug.Printf("Patch verification failed: no patching method detected for %s", gamePath)
 			return false
 		}
-
+		
+		// Check for rosettax87 directory and files (common to both approaches)
+		rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
+		if !utils.DirExists(rosettaX87Dir) {
+			debug.Printf("Patch verification failed: rosettax87 directory not found at %s", rosettaX87Dir)
+			return false
+		}
+		
 		// Verify rosettax87 binary files with hash/size verification
 		rosettax87Path := filepath.Join(rosettaX87Dir, "rosettax87")
 		libRuntimeRosettax87Path := filepath.Join(rosettaX87Dir, "libRuntimeRosettax87")
@@ -385,7 +1061,17 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 		rosettax87Valid := utils.PathExists(rosettax87Path) && utils.CompareFileWithBundledResource(rosettax87Path, "rosettax87/rosettax87")
 		libRuntimeValid := utils.PathExists(libRuntimeRosettax87Path) && utils.CompareFileWithBundledResource(libRuntimeRosettax87Path, "rosettax87/libRuntimeRosettax87")
 
-		return rosettax87Valid && libRuntimeValid
+		if !rosettax87Valid {
+			debug.Printf("Patch verification failed: rosettax87 binary invalid or missing at %s", rosettax87Path)
+			return false
+		}
+		
+		if !libRuntimeValid {
+			debug.Printf("Patch verification failed: libRuntimeRosettax87 invalid or missing at %s", libRuntimeRosettax87Path)
+			return false
+		}
+		
+		return true
 	}
 
 	// For TurtleSilicon, check full rosettax87 patches (winerosetta.dll, d3d9.dll, etc.)
@@ -418,34 +1104,68 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 // isDllRegisteredInDllsTxt checks if a specific DLL is registered in dlls.txt
 func isDllRegisteredInDllsTxt(gamePath string, dllName string) bool {
 	dllsTextFile := filepath.Join(gamePath, "dlls.txt")
-	
+
 	// If dlls.txt doesn't exist, consider it as not registered
 	if !utils.PathExists(dllsTextFile) {
 		debug.Printf("dlls.txt not found at: %s", dllsTextFile)
 		return false
 	}
-	
+
 	content, err := os.ReadFile(dllsTextFile)
 	if err != nil {
 		debug.Printf("Failed to read dlls.txt: %v", err)
 		return false
 	}
-	
+
 	contentStr := string(content)
-	
+
 	// Check if the DLL is registered (look for "winerosetta.dll" on its own line)
 	// The format is just "winerosetta.dll\n", not "winerosetta.dll=native"
 	dllEntry := dllName + "\n"
 	found := strings.Contains(contentStr, dllEntry)
-	
+
 	if !found {
 		// Also check if it's at the end without a newline
 		found = strings.HasSuffix(contentStr, dllName)
 	}
-	
+
 	if !found {
 		debug.Printf("'%s' not found in dlls.txt", dllName)
 	}
-	
+
 	return found
+}
+
+// createPatchingProgressPopup creates a modal popup to show patching progress
+func createPatchingProgressPopup(myWindow fyne.Window) *widget.PopUp {
+	// Create progress message
+	titleLabel := widget.NewLabel("Patching Game")
+	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
+	
+	messageLabel := widget.NewLabel("Please wait while the game is being patched...")
+	messageLabel.Wrapping = fyne.TextWrapWord
+	
+	// Create a progress bar (indeterminate)
+	progressBar := widget.NewProgressBarInfinite()
+	progressBar.Start()
+	
+	// Create content container
+	content := container.NewVBox(
+		titleLabel,
+		widget.NewSeparator(),
+		messageLabel,
+		widget.NewSeparator(),
+		progressBar,
+	)
+	
+	// Create the popup
+	popup := widget.NewModalPopUp(
+		container.NewPadded(content),
+		myWindow.Canvas(),
+	)
+	
+	// Set popup size
+	popup.Resize(fyne.NewSize(300, 150))
+	
+	return popup
 }

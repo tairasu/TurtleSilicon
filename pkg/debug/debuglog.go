@@ -13,8 +13,8 @@ import (
 
 // DebugInfo contains all the information needed to generate a debug log
 type DebugInfo struct {
-	CrossoverPath    string
-	TurtlewowPath    string
+	CrossoverPath            string
+	TurtlewowPath            string
 	PatchesAppliedTurtleWoW  bool
 	PatchesAppliedCrossOver  bool
 	RosettaX87ServiceRunning bool
@@ -36,31 +36,31 @@ type GameVersionInfo struct {
 }
 
 type GameVersionSettings struct {
-	EnableVanillaTweaks     bool
-	RemapOptionAsAlt        bool
-	AutoDeleteWdb           bool
-	EnableMetalHud          bool
-	SaveSudoPassword        bool
-	ShowTerminalNormally    bool
-	EnvironmentVariables    string
-	ReduceTerrainDistance   bool
-	SetMultisampleTo2x      bool
-	SetShadowLOD0           bool
-	EnableLibSiliconPatch   bool
+	EnableVanillaTweaks   bool
+	RemapOptionAsAlt      bool
+	AutoDeleteWdb         bool
+	EnableMetalHud        bool
+	SaveSudoPassword      bool
+	ShowTerminalNormally  bool
+	EnvironmentVariables  string
+	ReduceTerrainDistance bool
+	SetMultisampleTo2x    bool
+	SetShadowLOD0         bool
+	EnableLibSiliconPatch bool
 }
 
 // GenerateDebugLog creates a comprehensive debug log for troubleshooting
 func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) string {
 	var log strings.Builder
-	
+
 	log.WriteString("=== TurtleSilicon Debug Log ===\n")
 	log.WriteString(fmt.Sprintf("Generated: %s\n\n", time.Now().Format("2006-01-02 15:04:05")))
-	
+
 	// === System Information ===
 	log.WriteString("=== System Information ===\n")
 	log.WriteString(fmt.Sprintf("OS: %s\n", runtime.GOOS))
 	log.WriteString(fmt.Sprintf("Architecture: %s\n", runtime.GOARCH))
-	
+
 	// Get macOS version
 	if cmd := exec.Command("sw_vers"); cmd != nil {
 		if output, err := cmd.Output(); err == nil {
@@ -69,10 +69,10 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 			log.WriteString(fmt.Sprintf("macOS Version: Unable to detect (%v)\n", err))
 		}
 	}
-	
+
 	// === TurtleSilicon Version Information ===
 	log.WriteString("\n=== TurtleSilicon Configuration ===\n")
-	
+
 	if currentVersion != nil {
 		log.WriteString(fmt.Sprintf("Current Game Version: %s (%s)\n", currentVersion.DisplayName, currentVersion.ID))
 		log.WriteString(fmt.Sprintf("WoW Version: %s\n", currentVersion.WoWVersion))
@@ -81,8 +81,8 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 		log.WriteString(fmt.Sprintf("Supports Vanilla Tweaks: %v\n", currentVersion.SupportsVanillaTweaks))
 		log.WriteString(fmt.Sprintf("Supports DLL Loading: %v\n", currentVersion.SupportsDLLLoading))
 		log.WriteString(fmt.Sprintf("Uses Rosetta Patching: %v\n", currentVersion.UsesRosettaPatching))
-		log.WriteString(fmt.Sprintf("Uses DivX Decoder Patch: %v\n", currentVersion.UsesDivxDecoderPatch))
-		
+		log.WriteString(fmt.Sprintf("Uses LibDllLdr Patch: %v\n", currentVersion.UsesDivxDecoderPatch))
+
 		// Version settings
 		settings := currentVersion.Settings
 		log.WriteString("\nVersion Settings:\n")
@@ -100,12 +100,12 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 	} else {
 		log.WriteString("Current Version: No version information available\n")
 	}
-	
+
 	// === Paths ===
 	log.WriteString("\n=== Paths ===\n")
 	log.WriteString(fmt.Sprintf("CrossOver Path: %s\n", debugInfo.CrossoverPath))
 	log.WriteString(fmt.Sprintf("TurtleWoW Path: %s\n", debugInfo.TurtlewowPath))
-	
+
 	// Check if paths exist
 	if debugInfo.CrossoverPath != "" {
 		if _, err := os.Stat(debugInfo.CrossoverPath); err == nil {
@@ -114,7 +114,7 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 			log.WriteString(fmt.Sprintf("CrossOver Path: ✗ Missing (%v)\n", err))
 		}
 	}
-	
+
 	if debugInfo.TurtlewowPath != "" {
 		if _, err := os.Stat(debugInfo.TurtlewowPath); err == nil {
 			log.WriteString("TurtleWoW Path: ✓ Exists\n")
@@ -122,7 +122,7 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 			log.WriteString(fmt.Sprintf("TurtleWoW Path: ✗ Missing (%v)\n", err))
 		}
 	}
-	
+
 	// === CrossOver Information ===
 	log.WriteString("\n=== CrossOver Information ===\n")
 	crossoverVersion := getCrossoverVersion(debugInfo.CrossoverPath)
@@ -136,22 +136,22 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 	} else {
 		log.WriteString("CrossOver Version: Not found or invalid path\n")
 	}
-	
+
 	// === Game Files Check ===
 	log.WriteString("\n=== Game Files ===\n")
-	
+
 	// Check for current version's game path and executable
 	if currentVersion != nil && currentVersion.GamePath != "" {
 		gamePath := currentVersion.GamePath
 		exePath := filepath.Join(gamePath, currentVersion.ExecutableName)
-		
+
 		log.WriteString(fmt.Sprintf("Game Directory: %s\n", gamePath))
 		if _, err := os.Stat(exePath); err == nil {
 			log.WriteString(fmt.Sprintf("Game Executable: ✓ Found (%s)\n", currentVersion.ExecutableName))
 		} else {
 			log.WriteString(fmt.Sprintf("Game Executable: ✗ Missing (%s)\n", currentVersion.ExecutableName))
 		}
-		
+
 		// Check for dlls.txt
 		dllsPath := filepath.Join(gamePath, "dlls.txt")
 		if content, err := os.ReadFile(dllsPath); err == nil {
@@ -159,7 +159,7 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 		} else {
 			log.WriteString("dlls.txt: Not found\n")
 		}
-		
+
 		// Check for vanilla tweaks file
 		wowTweakedPath := filepath.Join(gamePath, "WoW_tweaked.exe")
 		if _, err := os.Stat(wowTweakedPath); err == nil {
@@ -167,7 +167,30 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 		} else {
 			log.WriteString("WoW_tweaked.exe: Not found\n")
 		}
-		
+
+		// Check for patched executables (libDllLdr.dll approach)
+		wowPatchedPath := filepath.Join(gamePath, "Wow_patched.exe")
+		if _, err := os.Stat(wowPatchedPath); err == nil {
+			log.WriteString("Wow_patched.exe: ✓ Found\n")
+		} else {
+			log.WriteString("Wow_patched.exe: Not found\n")
+		}
+
+		projectEpochPatchedPath := filepath.Join(gamePath, "Project-Epoch_patched.exe")
+		if _, err := os.Stat(projectEpochPatchedPath); err == nil {
+			log.WriteString("Project-Epoch_patched.exe: ✓ Found\n")
+		} else {
+			log.WriteString("Project-Epoch_patched.exe: Not found\n")
+		}
+
+		// Check for libDllLdr.dll
+		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
+		if _, err := os.Stat(libDllLdrPath); err == nil {
+			log.WriteString("libDllLdr.dll: ✓ Found\n")
+		} else {
+			log.WriteString("libDllLdr.dll: Not found\n")
+		}
+
 		// Check for config.wtf
 		wdbPath := filepath.Join(gamePath, "WDB")
 		configPath := filepath.Join(wdbPath, "enUS", "config.wtf")
@@ -185,20 +208,20 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 	} else {
 		log.WriteString("Game Directory: No game path configured\n")
 	}
-	
+
 	// === Wine Information ===
 	log.WriteString("\n=== Wine Information ===\n")
 	homeDir, _ := os.UserHomeDir()
 	userWinePrefix := filepath.Join(homeDir, ".wine")
 	turtleWinePrefix := filepath.Join(debugInfo.TurtlewowPath, ".wine")
-	
+
 	// Check wine prefixes
 	if _, err := os.Stat(userWinePrefix); err == nil {
 		log.WriteString("User Wine Prefix (~/.wine): ✓ Exists\n")
 	} else {
 		log.WriteString("User Wine Prefix (~/.wine): Not found\n")
 	}
-	
+
 	if debugInfo.TurtlewowPath != "" {
 		if _, err := os.Stat(turtleWinePrefix); err == nil {
 			log.WriteString("TurtleWoW Wine Prefix: ✓ Exists\n")
@@ -206,25 +229,25 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 			log.WriteString("TurtleWoW Wine Prefix: Not found\n")
 		}
 	}
-	
+
 	// === Patch Status ===
 	log.WriteString("\n=== Patch Status ===\n")
 	log.WriteString(fmt.Sprintf("Patches Applied (TurtleWoW): %v\n", debugInfo.PatchesAppliedTurtleWoW))
 	log.WriteString(fmt.Sprintf("Patches Applied (CrossOver): %v\n", debugInfo.PatchesAppliedCrossOver))
 	log.WriteString(fmt.Sprintf("Rosetta x87 Service Running: %v\n", debugInfo.RosettaX87ServiceRunning))
 	log.WriteString(fmt.Sprintf("Service Starting: %v\n", debugInfo.ServiceStarting))
-	
+
 	// === Launch Command Information ===
 	log.WriteString("\n=== Launch Command Information ===\n")
 	if currentVersion != nil && currentVersion.GamePath != "" && debugInfo.CrossoverPath != "" {
 		wineLoader := filepath.Join(debugInfo.CrossoverPath, "Contents", "SharedSupport", "CrossOver", "bin", "wine")
 		exePath := filepath.Join(currentVersion.GamePath, currentVersion.ExecutableName)
-		
+
 		log.WriteString("Expected Launch Components:\n")
 		log.WriteString(fmt.Sprintf("  Wine Loader: %s\n", wineLoader))
 		log.WriteString(fmt.Sprintf("  Game Executable: %s\n", exePath))
 		log.WriteString(fmt.Sprintf("  Environment Variables: %s\n", currentVersion.Settings.EnvironmentVariables))
-		
+
 		// Check if wine loader exists
 		if _, err := os.Stat(wineLoader); err == nil {
 			log.WriteString("  Wine Loader: ✓ Found\n")
@@ -234,7 +257,7 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 	} else {
 		log.WriteString("Launch Command: Cannot generate - missing required paths or version info\n")
 	}
-	
+
 	log.WriteString("\n=== End Debug Log ===\n")
 	return log.String()
 }
@@ -245,15 +268,15 @@ func getCrossoverVersion(path string) string {
 	if path == "" {
 		return ""
 	}
-	
+
 	plistPath := filepath.Join(path, "Contents", "Info.plist")
-	
+
 	// Using a simple plist decoder approach
 	content, err := os.ReadFile(plistPath)
 	if err != nil {
 		return ""
 	}
-	
+
 	// Simple string search for version (fallback if plist parsing fails)
 	contentStr := string(content)
 	if strings.Contains(contentStr, "CFBundleShortVersionString") {
@@ -267,7 +290,7 @@ func getCrossoverVersion(path string) string {
 			}
 		}
 	}
-	
+
 	return ""
 }
 
@@ -276,7 +299,7 @@ func isCrossoverVersionRecommended(version string) bool {
 	if len(parts) < 2 {
 		return false
 	}
-	
+
 	// Convert version parts to integers for proper comparison
 	major, err := strconv.Atoi(parts[0])
 	if err != nil {
@@ -286,7 +309,7 @@ func isCrossoverVersionRecommended(version string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	// Handle patch version (default to 0 if not present)
 	patch := 0
 	if len(parts) >= 3 {
@@ -295,7 +318,7 @@ func isCrossoverVersionRecommended(version string) bool {
 			return false
 		}
 	}
-	
+
 	// Check if version >= 25.0.1
 	if major > 25 {
 		return true
