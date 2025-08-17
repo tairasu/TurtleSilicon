@@ -35,9 +35,11 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 		}
 	}
 
-	// Check for first-time users after UI is ready
+	// Check for new TurtleWoW users after UI is ready
 	defer func() {
 		CheckForFirstTimeUser(myWindow)
+		// Show new user popup for TurtleWoW if needed
+		CheckAndShowNewUserPopup()
 	}()
 
 	// Create all UI components
@@ -74,10 +76,10 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 
 	// Set up callback for status updates from other packages
 	SetStatusUpdateCallback(UpdateAllStatuses)
-	
+
 	// Set up launcher callback for triggering UI updates when patch status changes
 	launcher.SetUIUpdateCallback(UpdateAllStatuses)
-	
+
 	// Initial UI state update
 	UpdateAllStatuses()
 

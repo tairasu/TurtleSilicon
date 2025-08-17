@@ -22,7 +22,7 @@ import (
 var EnableMetalHud = false      // Default to disabled
 var CustomEnvVars = ""          // Custom environment variables
 var EnableVanillaTweaks = false // Default to disabled
-var AutoDeleteWdb = false       // Default to disabled
+var AutoDeleteWdb = true        // Default to enabled
 
 // UI update callback for triggering status updates from launcher
 var uiUpdateCallback func()

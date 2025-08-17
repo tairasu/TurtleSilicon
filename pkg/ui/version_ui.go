@@ -315,9 +315,6 @@ func onVersionChanged(selectedDisplayName string, myWindow fyne.Window) {
 	// Update the logo to match the new version
 	updateLogoForVersion(selectedVersionID)
 
-	// Refresh main content to show/hide new user helper based on new version
-	RefreshMainContentForPathChange()
-
 	// For EpochSilicon, automatically check for updates if already patched
 	if selectedVersionID == "epochsilicon" && currentVersion != nil && currentVersion.GamePath != "" {
 		// Check if we're already patched by looking for required files
@@ -621,9 +618,6 @@ func setGamePathForCurrentVersion(myWindow fyne.Window, selectedPath string) {
 	debug.Printf("Game path set for version %s: %s", currentVersion.ID, selectedPath)
 	updateVersionPathLabels()
 	UpdateAllStatuses()
-
-	// Refresh main content to hide/show new user helper
-	RefreshMainContentForPathChange()
 
 	// For EpochSilicon, check required files and offer to download missing ones
 	if currentVersion.ID == "epochsilicon" {

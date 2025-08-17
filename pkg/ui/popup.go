@@ -680,3 +680,94 @@ func deleteVanillaTweaksFile() {
 		}
 	}, currentWindow).Show()
 }
+
+// showNewUserTurtleWoWPopup shows a popup for new TurtleWoW users to download the client
+func showNewUserTurtleWoWPopup() {
+	if currentWindow == nil {
+		return
+	}
+
+	// Create popup content
+	titleText := widget.NewRichTextFromMarkdown("# Welcome to TurtleSilicon!")
+	titleText.Wrapping = fyne.TextWrapOff
+
+	messageText := widget.NewLabel("It looks like you're new to TurtleWoW! To get started, you'll need to download the TurtleWoW client.")
+	messageText.Wrapping = fyne.TextWrapWord
+
+	downloadInfoText := widget.NewLabel("Click the button below to download the official TurtleWoW client (about 9GB):")
+	downloadInfoText.Wrapping = fyne.TextWrapWord
+	downloadInfoText.TextStyle = fyne.TextStyle{Bold: true}
+
+	// Download button
+	downloadButton := widget.NewButton("Download TurtleWoW Client", func() {
+		downloadURL := "http://eudl.turtle-wow.org/twmoa_1172.zip"
+		cmd := exec.Command("open", downloadURL)
+		if err := cmd.Start(); err != nil {
+			dialog.ShowError(fmt.Errorf("Failed to open download URL: %v", err), currentWindow)
+		} else {
+			// Show success message
+			dialog.ShowInformation("Download Started", "The TurtleWoW download has been started in your browser.", currentWindow)
+		}
+	})
+	downloadButton.Importance = widget.HighImportance
+
+	// Instructions
+	instructionsText := widget.NewLabel("After downloading:\n\n" +
+		"1. Extract the ZIP file to a location on your Mac (e.g., Desktop or Applications)\n" +
+		"2. Return to TurtleSilicon and click \"Set/Change\" next to Game Path\n" +
+		"3. Select the extracted TurtleWoW folder\n" +
+		"4. Follow the patching steps to optimize for Apple Silicon\n\n" +
+		"You can dismiss this popup if you already have TurtleWoW installed.")
+	instructionsText.Wrapping = fyne.TextWrapWord
+	instructionsText.TextStyle = fyne.TextStyle{Italic: true}
+
+	// Buttons
+	dismissButton := widget.NewButton("Dismiss", func() {
+		// This will be set when the popup is created
+	})
+	dismissButton.Importance = widget.LowImportance
+
+	buttonsContainer := container.NewHBox(
+		dismissButton,
+		downloadButton,
+	)
+
+	// Create content container
+	content := container.NewVBox(
+		container.NewCenter(titleText),
+		widget.NewSeparator(),
+		messageText,
+		widget.NewSeparator(),
+		downloadInfoText,
+		widget.NewSeparator(),
+		instructionsText,
+		widget.NewSeparator(),
+		container.NewCenter(buttonsContainer),
+	)
+
+	// Calculate popup size
+	windowSize := currentWindow.Canvas().Size()
+	popupWidth := windowSize.Width * 3 / 4
+	popupHeight := windowSize.Height * 3 / 4
+
+	// Create popup
+	popup := widget.NewModalPopUp(container.NewPadded(content), currentWindow.Canvas())
+	popup.Resize(fyne.NewSize(popupWidth, popupHeight))
+
+	// Set button actions
+	dismissButton.OnTapped = func() {
+		popup.Hide()
+	}
+
+	popup.Show()
+}
+
+// CheckAndShowNewUserPopup checks if the new user popup should be shown and shows it
+func CheckAndShowNewUserPopup() {
+	// Only show for TurtleWoW when no game path is set
+	currentVer := GetCurrentVersion()
+	if currentVer != nil && currentVer.ID == "turtlesilicon" && currentVer.GamePath == "" {
+		debug.Printf("Showing new user popup for TurtleWoW")
+		showNewUserTurtleWoWPopup()
+	}
+}
