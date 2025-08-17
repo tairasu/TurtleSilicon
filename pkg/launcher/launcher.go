@@ -7,10 +7,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/paths" // Corrected import path
+	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/utils" // Corrected import path
+	"turtlesilicon/pkg/version"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
@@ -20,6 +23,9 @@ var EnableMetalHud = false      // Default to disabled
 var CustomEnvVars = ""          // Custom environment variables
 var EnableVanillaTweaks = false // Default to disabled
 var AutoDeleteWdb = false       // Default to disabled
+
+// UI update callback for triggering status updates from launcher
+var uiUpdateCallback func()
 
 // Terminal state management
 var (
@@ -90,6 +96,10 @@ func runGameIntegrated(parentWindow fyne.Window, shellCmd string) error {
 			isGameRunning = false
 			currentGameProcess = nil
 			gameMutex.Unlock()
+			
+			// Verify patch status after game closes to detect if TurtleWoW client deleted dlls.txt
+			debug.Println("Game closed, verifying patch status...")
+			verifyPatchStatusAfterGameClose()
 		}()
 
 		if err := cmd.Wait(); err != nil {
@@ -113,6 +123,13 @@ func LaunchGame(myWindow fyne.Window) {
 		dialog.ShowError(fmt.Errorf("game path not set. Please set it in the patcher."), myWindow)
 		return
 	}
+	
+	// Verify patch status before launching - this catches when TurtleWoW client has updated
+	debug.Println("Verifying patch status before launch...")
+	if !verifyPatchStatusBeforeLaunch(myWindow) {
+		return // Don't launch if patches are invalid
+	}
+	
 	if !paths.PatchesAppliedTurtleWoW || !paths.PatchesAppliedCrossOver {
 		confirmed := false
 		dialog.ShowConfirm("Warning", "Not all patches confirmed applied. Continue with launch?", func(c bool) {
@@ -287,5 +304,109 @@ func deleteLegacyWDBDirectories(gamePath string) {
 	// If neither was found, log it
 	if !utils.DirExists(wdbPath) && !utils.DirExists(cacheWdbPath) {
 		debug.Printf("WDB directory not found, nothing to delete")
+	}
+}
+
+// SetUIUpdateCallback sets the callback function for triggering UI updates
+func SetUIUpdateCallback(callback func()) {
+	uiUpdateCallback = callback
+}
+
+// verifyPatchStatusBeforeLaunch checks patch status before launching and updates UI if needed
+// Returns true if launch should proceed, false if patches are invalid
+func verifyPatchStatusBeforeLaunch(myWindow fyne.Window) bool {
+	debug.Println("Pre-launch patch verification...")
+	
+	// Load current version
+	vm, err := version.LoadVersionManager()
+	if err != nil {
+		debug.Printf("Failed to load version manager for pre-launch verification: %v", err)
+		return true // Continue launch if we can't verify
+	}
+	
+	currentVer, err := vm.GetCurrentVersion()
+	if err != nil {
+		debug.Printf("Failed to get current version for pre-launch verification: %v", err)
+		return true // Continue launch if we can't verify
+	}
+	
+	if currentVer.GamePath == "" {
+		debug.Println("No game path set, skipping pre-launch verification")
+		return true
+	}
+	
+	// Check if patches are still applied
+	patchesStillValid := patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch)
+	
+	if !patchesStillValid {
+		debug.Println("⚠️ Pre-launch check: Patches are no longer valid!")
+		
+		// Reset patch status so UI reflects reality
+		_, crossoverPatched := paths.GetVersionPatchingStatus(currentVer.ID)
+		paths.SetVersionPatchingStatus(currentVer.ID, false, crossoverPatched)
+		paths.PatchesAppliedTurtleWoW = false
+		
+		// Trigger UI update immediately
+		if uiUpdateCallback != nil {
+			uiUpdateCallback()
+		}
+		
+		// Show user-friendly dialog
+		dialog.ShowError(fmt.Errorf("Game patches are no longer valid!\n\nThe TurtleWoW client may have updated and reset your patches.\nPlease re-patch the game before launching."), myWindow)
+		
+		return false // Don't launch
+	}
+	
+	debug.Println("✓ Pre-launch verification passed")
+	return true // Launch is OK
+}
+
+// verifyPatchStatusAfterGameClose checks if patches are still valid after game closes
+// This detects when TurtleWoW client updates itself and deletes dlls.txt content
+func verifyPatchStatusAfterGameClose() {
+	debug.Println("Verifying patch status after game close...")
+	
+	// Add a small delay to ensure the game process has fully terminated
+	time.Sleep(1 * time.Second)
+	
+	// Load current version
+	vm, err := version.LoadVersionManager()
+	if err != nil {
+		debug.Printf("Failed to load version manager for patch verification: %v", err)
+		return
+	}
+	
+	currentVer, err := vm.GetCurrentVersion()
+	if err != nil {
+		debug.Printf("Failed to get current version for patch verification: %v", err)
+		return
+	}
+	
+	if currentVer.GamePath == "" {
+		debug.Println("No game path set, skipping patch verification")
+		return
+	}
+	
+	// Check if patches are still applied
+	patchesStillValid := patching.CheckVersionPatchingStatus(currentVer.GamePath, currentVer.UsesRosettaPatching, currentVer.UsesDivxDecoderPatch)
+	
+	if !patchesStillValid {
+		debug.Println("⚠️ Patches are no longer valid! TurtleWoW client may have updated and reset dlls.txt")
+		
+		// Reset patch status so user needs to re-patch
+		_, crossoverPatched := paths.GetVersionPatchingStatus(currentVer.ID)
+		paths.SetVersionPatchingStatus(currentVer.ID, false, crossoverPatched)
+		
+		// For legacy system compatibility, also reset the global flags
+		paths.PatchesAppliedTurtleWoW = false
+		
+		debug.Println("Patch status reset. User will need to re-patch the game.")
+		
+		// Trigger UI update to reflect the changed patch status
+		if uiUpdateCallback != nil {
+			uiUpdateCallback()
+		}
+	} else {
+		debug.Println("✓ Patches verified successfully - still valid")
 	}
 }

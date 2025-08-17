@@ -16,6 +16,7 @@ import (
 
 var (
 	pulsingActive = false
+	statusUpdateCallback func() = nil
 )
 
 // UpdateAllStatuses updates all UI components based on current application state
@@ -353,3 +354,18 @@ func startPulsingAnimation() {
 		dots++
 	}
 }
+
+// SetStatusUpdateCallback sets a callback function that will be called whenever UI status needs updating
+// This allows other packages to trigger UI updates
+func SetStatusUpdateCallback(callback func()) {
+	statusUpdateCallback = callback
+}
+
+// TriggerStatusUpdate calls the status update callback if one is set
+// This can be called from other packages to trigger UI updates
+func TriggerStatusUpdate() {
+	if statusUpdateCallback != nil {
+		statusUpdateCallback()
+	}
+}
+

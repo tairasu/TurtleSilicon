@@ -160,6 +160,14 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 			log.WriteString("dlls.txt: Not found\n")
 		}
 		
+		// Check for vanilla tweaks file
+		wowTweakedPath := filepath.Join(gamePath, "WoW_tweaked.exe")
+		if _, err := os.Stat(wowTweakedPath); err == nil {
+			log.WriteString("WoW_tweaked.exe: ✓ Found\n")
+		} else {
+			log.WriteString("WoW_tweaked.exe: Not found\n")
+		}
+		
 		// Check for config.wtf
 		wdbPath := filepath.Join(gamePath, "WDB")
 		configPath := filepath.Join(wdbPath, "enUS", "config.wtf")

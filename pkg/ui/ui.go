@@ -3,6 +3,7 @@ package ui
 import (
 	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/epochsilicon"
+	"turtlesilicon/pkg/launcher"
 	"turtlesilicon/pkg/patching"
 	"turtlesilicon/pkg/paths"
 	"turtlesilicon/pkg/utils"
@@ -71,6 +72,12 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	// Refresh UI to display current version settings and paths
 	RefreshUIForCurrentVersion()
 
+	// Set up callback for status updates from other packages
+	SetStatusUpdateCallback(UpdateAllStatuses)
+	
+	// Set up launcher callback for triggering UI updates when patch status changes
+	launcher.SetUIUpdateCallback(UpdateAllStatuses)
+	
 	// Initial UI state update
 	UpdateAllStatuses()
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"turtlesilicon/pkg/debug"
 	"turtlesilicon/pkg/paths"
@@ -397,6 +398,13 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 		return false
 	}
 
+	// Check dlls.txt to ensure winerosetta.dll is properly registered
+	if !isDllRegisteredInDllsTxt(gamePath, "winerosetta.dll") {
+		debug.Printf("Patch verification failed: winerosetta.dll not found in dlls.txt for %s", gamePath)
+		return false
+	}
+	debug.Printf("✓ dlls.txt verification passed for %s", gamePath)
+
 	// Verify rosettax87 binary files with hash/size verification
 	rosettax87Path := filepath.Join(rosettaX87Dir, "rosettax87")
 	libRuntimeRosettax87Path := filepath.Join(rosettaX87Dir, "libRuntimeRosettax87")
@@ -405,4 +413,39 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 	libRuntimeValid := utils.PathExists(libRuntimeRosettax87Path) && utils.CompareFileWithBundledResource(libRuntimeRosettax87Path, "rosettax87/libRuntimeRosettax87")
 
 	return rosettax87Valid && libRuntimeValid
+}
+
+// isDllRegisteredInDllsTxt checks if a specific DLL is registered in dlls.txt
+func isDllRegisteredInDllsTxt(gamePath string, dllName string) bool {
+	dllsTextFile := filepath.Join(gamePath, "dlls.txt")
+	
+	// If dlls.txt doesn't exist, consider it as not registered
+	if !utils.PathExists(dllsTextFile) {
+		debug.Printf("dlls.txt not found at: %s", dllsTextFile)
+		return false
+	}
+	
+	content, err := os.ReadFile(dllsTextFile)
+	if err != nil {
+		debug.Printf("Failed to read dlls.txt: %v", err)
+		return false
+	}
+	
+	contentStr := string(content)
+	
+	// Check if the DLL is registered (look for "winerosetta.dll" on its own line)
+	// The format is just "winerosetta.dll\n", not "winerosetta.dll=native"
+	dllEntry := dllName + "\n"
+	found := strings.Contains(contentStr, dllEntry)
+	
+	if !found {
+		// Also check if it's at the end without a newline
+		found = strings.HasSuffix(contentStr, dllName)
+	}
+	
+	if !found {
+		debug.Printf("'%s' not found in dlls.txt", dllName)
+	}
+	
+	return found
 }
