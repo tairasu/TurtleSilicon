@@ -81,7 +81,6 @@ func CreateUI(myWindow fyne.Window) fyne.CanvasObject {
 	// Initial UI state update
 	UpdateAllStatuses()
 
-
 	// Create layout with header at top, main content moved up to avoid bottom bar, and bottom bar
 	// Use VBox to position main content higher up instead of centering it
 	mainContentContainer := container.NewVBox(

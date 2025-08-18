@@ -248,14 +248,14 @@ func showDebugLogPopup() {
 	if vm, err := version.LoadVersionManager(); err == nil {
 		if currentVer, err := vm.GetCurrentVersion(); err == nil {
 			gameVersionInfo = &debug.GameVersionInfo{
-				ID:                    currentVer.ID,
-				DisplayName:           currentVer.DisplayName,
-				WoWVersion:            currentVer.WoWVersion,
-				GamePath:              currentVer.GamePath,
-				ExecutableName:        currentVer.ExecutableName,
-				SupportsDLLLoading:    currentVer.SupportsDLLLoading,
-				UsesRosettaPatching:   currentVer.UsesRosettaPatching,
-				UsesDivxDecoderPatch:  currentVer.UsesDivxDecoderPatch,
+				ID:                   currentVer.ID,
+				DisplayName:          currentVer.DisplayName,
+				WoWVersion:           currentVer.WoWVersion,
+				GamePath:             currentVer.GamePath,
+				ExecutableName:       currentVer.ExecutableName,
+				SupportsDLLLoading:   currentVer.SupportsDLLLoading,
+				UsesRosettaPatching:  currentVer.UsesRosettaPatching,
+				UsesDivxDecoderPatch: currentVer.UsesDivxDecoderPatch,
 				Settings: debug.GameVersionSettings{
 					RemapOptionAsAlt:      currentVer.Settings.RemapOptionAsAlt,
 					AutoDeleteWdb:         currentVer.Settings.AutoDeleteWdb,
@@ -371,7 +371,7 @@ func showTroubleshootingPopup() {
 	wineDeleteButton = widget.NewButton("Delete", func() {
 		homeDir, _ := os.UserHomeDir()
 		userWine := filepath.Join(homeDir, ".wine")
-		
+
 		// Use current version's game path instead of hardcoded TurtleWoW path
 		gamePath := ""
 		if currentVer != nil && currentVer.GamePath != "" {
@@ -380,7 +380,7 @@ func showTroubleshootingPopup() {
 			// Fall back to legacy path if no current version
 			gamePath = paths.TurtlewowPath
 		}
-		
+
 		gameWine := filepath.Join(gamePath, ".wine")
 		msg := "Are you sure you want to delete the following Wine prefixes?\n\n- " + userWine + "\n- " + gameWine + "\n\nThis cannot be undone."
 		dialog.NewConfirm("Delete Wine Prefixes", msg, func(confirm bool) {
@@ -404,7 +404,6 @@ func showTroubleshootingPopup() {
 	debugLogButton := widget.NewButton("Show Debug Log", func() {
 		showDebugLogPopup()
 	})
-
 
 	troubleshootingTitle := widget.NewLabel("Troubleshooting")
 	troubleshootingTitle.TextStyle = fyne.TextStyle{Bold: true}
@@ -454,7 +453,7 @@ func showTroubleshootingPopup() {
 
 	rowCrossover := container.NewBorder(nil, nil, widget.NewLabel("CrossOver version:"), crossoverStatusShort, nil)
 	rowWDB := container.NewBorder(nil, nil, widget.NewLabel("Delete WDB directory (cache):"), wdbDeleteButton, nil)
-	
+
 	// Create version-aware wine prefix label
 	wineLabel := "Delete Wine prefixes (~/.wine & Game/.wine):"
 	if currentVer != nil && currentVer.GamePath != "" {
@@ -462,7 +461,7 @@ func showTroubleshootingPopup() {
 		wineLabel = fmt.Sprintf("Delete Wine prefixes (~/.wine & %s/.wine):", gameName)
 	}
 	rowWine := container.NewBorder(nil, nil, widget.NewLabel(wineLabel), wineDeleteButton, nil)
-	
+
 	rowDebugLog := container.NewBorder(nil, nil, widget.NewLabel("Show debug log for support:"), debugLogButton, nil)
 	appMgmtNote := widget.NewLabel("Please ensure TurtleSilicon is enabled in System Settings > Privacy & Security > App Management.")
 	appMgmtNote.Wrapping = fyne.TextWrapWord
@@ -664,7 +663,6 @@ func deleteWDBDirectoriesInPopup() {
 		}
 	}, currentWindow).Show()
 }
-
 
 // showNewUserTurtleWoWPopup shows a popup for new TurtleWoW users to download the client
 func showNewUserTurtleWoWPopup() {

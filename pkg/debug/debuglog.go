@@ -23,15 +23,15 @@ type DebugInfo struct {
 
 // GameVersionInfo contains version-specific information
 type GameVersionInfo struct {
-	ID                    string
-	DisplayName           string
-	WoWVersion            string
-	GamePath              string
-	ExecutableName        string
-	SupportsDLLLoading    bool
-	UsesRosettaPatching   bool
-	UsesDivxDecoderPatch  bool
-	Settings              GameVersionSettings
+	ID                   string
+	DisplayName          string
+	WoWVersion           string
+	GamePath             string
+	ExecutableName       string
+	SupportsDLLLoading   bool
+	UsesRosettaPatching  bool
+	UsesDivxDecoderPatch bool
+	Settings             GameVersionSettings
 }
 
 type GameVersionSettings struct {

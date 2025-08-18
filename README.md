@@ -11,7 +11,7 @@
 
 <div align="center">
 <img src="img/turtlesilicon-fps_v2.png" alt="Turtle WoW FPS on Apple Silicon" width="49%" />
-<img src="img/turtlesilicon-app_v5.png" alt="TurtleSilicon Application" width="49%" />
+<img src="img/turtlesilicon-app_v6.png" alt="TurtleSilicon Application" width="49%" />
 </div>
 
 A powerful multi-version World of Warcraft launcher for Apple Silicon Macs, supporting Vanilla (1.12), TBC (2.4.3), WotLK (3.3.5), Turtle WoW, and Project Epoch. Features one-click patching, addon management, and performance optimization for all WoW versions.
@@ -21,7 +21,7 @@ A powerful multi-version World of Warcraft launcher for Apple Silicon Macs, supp
 TurtleSilicon now supports multiple World of Warcraft versions and private servers:
 
 - **Turtle WoW** - Enhanced vanilla experience with custom content
-- **Project Epoch** - Wrath of the Lich King (3.3.5a) server with automatic client setup
+- **Project Epoch** - Wrath of the Lich King (3.3.5a) that has been updated with the Ascension Launcher 
 - **Vanilla WoW** - Classic 1.12.1 experience
 - **Burning Crusade** - TBC 2.4.3 expansion
 - **Wrath of the Lich King** - WotLK 3.3.5a expansion
@@ -32,12 +32,11 @@ Each version maintains separate settings, paths, and configurations for complete
 
 Before you begin, ensure you have the following:
 
-*   A working version of **CrossOver** installed (the trial version is sufficient and can still be used after expiration).
-    - I recommend using CrossOver v25.0.1 or later. Older versions will cause issues.
+*    **CrossOver** v25.0.1 or later installed (the trial version is sufficient and can still be used after expiration).
 *   The **World of Warcraft Client** for your desired version:
-    - Turtle WoW: Download from the official Turtle WoW website
-    - Project Epoch: Provide a WotLK 3.3.5a client (TurtleSilicon will download Project Epoch files)
-    - Other versions: Provide your own legitimate WoW installation
+    - Turtle WoW: The launcher will provide a download link for first time users
+    - Project Epoch: Provide a WotLK 3.3.5a client that is already updated with the Ascension Launcher (TurtleSilicon will **not** download Project Epoch files)
+    - Other versions: Provide your own WoW installation
 
 
 
@@ -54,7 +53,7 @@ Before you begin, ensure you have the following:
 ### Multi-Version Support
 *   **Version Management:** Switch between different WoW versions seamlessly
 *   **Isolated Settings:** Each version maintains separate configurations, paths, and settings
-*   **Version-Specific Features:** Tailored options for each WoW version (e.g., vanilla-tweaks for older versions)
+*   **Version-Specific Features:** Tailored options for each WoW version (e.g., libSiliconPatch for TurtleWoW)
 *   **Dynamic UI:** Interface adapts based on selected version capabilities
 
 ### Addon Management
@@ -63,16 +62,17 @@ Before you begin, ensure you have the following:
 *   **Easy Installation:** Add new addons directly from repository URLs
 *   **Smart Detection:** Automatically detects git-managed addons in your Interface/Addons folder
 
+### Mod Management (DLL mods)
+*   **Quick Toggle** Effortlessly toggle your DLL injection mods
+*   **Better structure** Keeps all DLL mods in a mods directory
+> [!NOTE]  
+> Custom mods can break the client and are not officially supported. When facing issues, turn them off please
+
 ### Advanced Configuration
 *   **Graphics Settings:** Automated optimization for terrain distance, shadows, multisampling
 *   **Environment Variables:** Custom environment variable support per version
 *   **Wine Registry Management:** Option-as-Alt key remapping for Mac users
 *   **Terminal Integration:** Optional terminal output for debugging
-
-### Project Epoch Integration
-*   **Automatic File Management:** Downloads and configures all required Project Epoch files for your existing WotLK 3.3.5a client
-*   **File Validation:** Ensures all necessary Project Epoch components are present before launching
-*   **Seamless Updates:** Automatic realmlist updates and Project Epoch file management
 
 ## Usage
 
@@ -92,7 +92,7 @@ Before you begin, ensure you have the following:
 
 4.  **Set Game Directory Path**
     *   Click "Set/Change" and select the folder containing your WoW client files
-    *   For Project Epoch: Point to your WotLK 3.3.5a installation - TurtleSilicon will automatically download missing Project Epoch files
+    *   For Project Epoch: Point to your WotLK 3.3.5a installation after updating it with the Ascension launcher (using CrossOver/Whisky/wine) - TurtleSilicon is not able to update Epoch for you
 
 5.  **Apply Patches**
     *   Click "Patch Game" to apply performance optimizations
@@ -101,7 +101,6 @@ Before you begin, ensure you have the following:
 
 6.  **Configure Options (Optional)**
     *   Access the **Options** menu for detailed settings:
-        - Enable version-specific features (e.g., vanilla-tweaks)
         - Configure graphics settings for optimal performance
         - Set up custom environment variables
         - Manage Wine registry settings

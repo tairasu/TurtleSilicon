@@ -313,7 +313,6 @@ func onVersionChanged(selectedDisplayName string, myWindow fyne.Window) {
 	// Update the logo to match the new version
 	updateLogoForVersion(selectedVersionID)
 
-
 	debug.Printf("Successfully switched to version: %s", selectedDisplayName)
 }
 
@@ -621,7 +620,6 @@ func PatchCurrentVersion(myWindow fyne.Window) {
 		return
 	}
 
-
 	// Proceed with normal patching
 	proceedWithPatching(myWindow)
 }
@@ -663,8 +661,8 @@ func LaunchCurrentVersion(myWindow fyne.Window) {
 		// Validate that SET movie "0" is present in Config.wtf
 		if !patching.CheckMovieSetting(currentVersion.GamePath) {
 			// Show dialog asking if user wants to add the setting
-			dialog.ShowConfirm("Missing required setting", 
-				"This game version requires 'SET movie \"0\"' in Config.wtf to launch properly.\n\nWould you like to add this setting now?", 
+			dialog.ShowConfirm("Missing required setting",
+				"This game version requires 'SET movie \"0\"' in Config.wtf to launch properly.\n\nWould you like to add this setting now?",
 				func(confirmed bool) {
 					if confirmed {
 						// Add the setting and then launch
@@ -698,7 +696,6 @@ func launchGame(myWindow fyne.Window) {
 		currentVersion.Settings.AutoDeleteWdb,
 	)
 }
-
 
 // CheckForFirstTimeUser is no longer needed - removed first-time user dialogs
 func CheckForFirstTimeUser(myWindow fyne.Window) {

@@ -11,7 +11,7 @@ import (
 	"fyne.io/fyne/v2/app"
 )
 
-const appVersion = "1.4.1"
+const appVersion = "1.5.0"
 
 func main() {
 	TSApp := app.NewWithID("com.tairasu.turtlesilicon")
@@ -52,7 +52,6 @@ func main() {
 	// Set up cleanup when window closes
 	TSWindow.SetCloseIntercept(func() {
 		debug.Println("Application closing...")
-		// No service cleanup needed - rosettax87 now uses direct execution
 		TSApp.Quit()
 	})
 
