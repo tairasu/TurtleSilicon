@@ -55,19 +55,6 @@ func createOptionsComponents() {
 	})
 	showTerminalCheckbox.SetChecked(currentVer.Settings.ShowTerminalNormally)
 
-	vanillaTweaksCheckbox = widget.NewCheck("Enable vanilla-tweaks", func(checked bool) {
-		launcher.EnableVanillaTweaks = checked
-		// Save to current version settings
-		currentVer := GetCurrentVersion()
-		if currentVer != nil {
-			currentVer.Settings.EnableVanillaTweaks = checked
-			SaveCurrentVersion(currentVer)
-		}
-		debug.Printf("Vanilla-tweaks enabled: %v", launcher.EnableVanillaTweaks)
-	})
-	vanillaTweaksCheckbox.SetChecked(currentVer.Settings.EnableVanillaTweaks)
-	launcher.EnableVanillaTweaks = currentVer.Settings.EnableVanillaTweaks
-
 	autoDeleteWdbCheckbox = widget.NewCheck("Auto-delete WDB directory on launch", func(checked bool) {
 		launcher.AutoDeleteWdb = checked
 		// Save to current version settings

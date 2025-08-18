@@ -28,7 +28,6 @@ type GameVersionInfo struct {
 	WoWVersion            string
 	GamePath              string
 	ExecutableName        string
-	SupportsVanillaTweaks bool
 	SupportsDLLLoading    bool
 	UsesRosettaPatching   bool
 	UsesDivxDecoderPatch  bool
@@ -36,7 +35,6 @@ type GameVersionInfo struct {
 }
 
 type GameVersionSettings struct {
-	EnableVanillaTweaks   bool
 	RemapOptionAsAlt      bool
 	AutoDeleteWdb         bool
 	EnableMetalHud        bool
@@ -78,7 +76,6 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 		log.WriteString(fmt.Sprintf("WoW Version: %s\n", currentVersion.WoWVersion))
 		log.WriteString(fmt.Sprintf("Game Path: %s\n", currentVersion.GamePath))
 		log.WriteString(fmt.Sprintf("Executable: %s\n", currentVersion.ExecutableName))
-		log.WriteString(fmt.Sprintf("Supports Vanilla Tweaks: %v\n", currentVersion.SupportsVanillaTweaks))
 		log.WriteString(fmt.Sprintf("Supports DLL Loading: %v\n", currentVersion.SupportsDLLLoading))
 		log.WriteString(fmt.Sprintf("Uses Rosetta Patching: %v\n", currentVersion.UsesRosettaPatching))
 		log.WriteString(fmt.Sprintf("Uses LibDllLdr Patch: %v\n", currentVersion.UsesDivxDecoderPatch))
@@ -86,7 +83,6 @@ func GenerateDebugLog(debugInfo *DebugInfo, currentVersion *GameVersionInfo) str
 		// Version settings
 		settings := currentVersion.Settings
 		log.WriteString("\nVersion Settings:\n")
-		log.WriteString(fmt.Sprintf("  Vanilla Tweaks: %v\n", settings.EnableVanillaTweaks))
 		log.WriteString(fmt.Sprintf("  Remap Option as Alt: %v\n", settings.RemapOptionAsAlt))
 		log.WriteString(fmt.Sprintf("  Auto Delete WDB: %v\n", settings.AutoDeleteWdb))
 		log.WriteString(fmt.Sprintf("  Metal HUD: %v\n", settings.EnableMetalHud))

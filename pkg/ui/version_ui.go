@@ -80,7 +80,6 @@ func migrateOldPreferences() error {
 	}
 
 	// Migrate settings
-	turtleSiliconVersion.Settings.EnableVanillaTweaks = oldPrefs.EnableVanillaTweaks
 	turtleSiliconVersion.Settings.RemapOptionAsAlt = oldPrefs.RemapOptionAsAlt
 	turtleSiliconVersion.Settings.AutoDeleteWdb = oldPrefs.AutoDeleteWdb
 	turtleSiliconVersion.Settings.EnableMetalHud = oldPrefs.EnableMetalHud
@@ -426,15 +425,6 @@ func updateVersionSettings() {
 	if showTerminalCheckbox != nil {
 		showTerminalCheckbox.SetChecked(settings.ShowTerminalNormally)
 	}
-	if vanillaTweaksCheckbox != nil {
-		vanillaTweaksCheckbox.SetChecked(settings.EnableVanillaTweaks)
-		if !currentVersion.SupportsVanillaTweaks {
-			vanillaTweaksCheckbox.Disable()
-		} else {
-			vanillaTweaksCheckbox.Enable()
-		}
-		vanillaTweaksCheckbox.Refresh()
-	}
 	if autoDeleteWdbCheckbox != nil {
 		autoDeleteWdbCheckbox.SetChecked(settings.AutoDeleteWdb)
 	}
@@ -462,15 +452,7 @@ func updateVersionCapabilities() {
 		return
 	}
 
-	// Update vanilla tweaks checkbox availability
-	if vanillaTweaksCheckbox != nil {
-		if currentVersion.SupportsVanillaTweaks {
-			vanillaTweaksCheckbox.Enable()
-		} else {
-			vanillaTweaksCheckbox.Disable()
-			vanillaTweaksCheckbox.SetChecked(false)
-		}
-	}
+	// No version-specific capabilities to update currently
 
 }
 
@@ -515,16 +497,12 @@ func RefreshUIForCurrentVersion() {
 
 	// Update launcher variables to match current version settings
 	launcher.EnableMetalHud = currentVersion.Settings.EnableMetalHud
-	launcher.EnableVanillaTweaks = currentVersion.Settings.EnableVanillaTweaks
 	launcher.AutoDeleteWdb = currentVersion.Settings.AutoDeleteWdb
 	launcher.CustomEnvVars = currentVersion.Settings.EnvironmentVariables
 
 	// Update UI checkboxes to reflect current version settings
 	if metalHudCheckbox != nil {
 		metalHudCheckbox.SetChecked(currentVersion.Settings.EnableMetalHud)
-	}
-	if vanillaTweaksCheckbox != nil {
-		vanillaTweaksCheckbox.SetChecked(currentVersion.Settings.EnableVanillaTweaks)
 	}
 	if autoDeleteWdbCheckbox != nil {
 		autoDeleteWdbCheckbox.SetChecked(currentVersion.Settings.AutoDeleteWdb)

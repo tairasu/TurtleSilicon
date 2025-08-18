@@ -48,7 +48,6 @@ func showOptionsPopup() {
 		widget.NewSeparator(),
 		metalHudCheckbox,
 		showTerminalCheckbox,
-		vanillaTweaksCheckbox,
 		autoDeleteWdbCheckbox,
 		widget.NewSeparator(),
 		container.NewBorder(nil, nil, nil, container.NewHBox(enableOptionAsAltButton, disableOptionAsAltButton), optionAsAltStatusLabel),
@@ -254,12 +253,10 @@ func showDebugLogPopup() {
 				WoWVersion:            currentVer.WoWVersion,
 				GamePath:              currentVer.GamePath,
 				ExecutableName:        currentVer.ExecutableName,
-				SupportsVanillaTweaks: currentVer.SupportsVanillaTweaks,
 				SupportsDLLLoading:    currentVer.SupportsDLLLoading,
 				UsesRosettaPatching:   currentVer.UsesRosettaPatching,
 				UsesDivxDecoderPatch:  currentVer.UsesDivxDecoderPatch,
 				Settings: debug.GameVersionSettings{
-					EnableVanillaTweaks:   currentVer.Settings.EnableVanillaTweaks,
 					RemapOptionAsAlt:      currentVer.Settings.RemapOptionAsAlt,
 					AutoDeleteWdb:         currentVer.Settings.AutoDeleteWdb,
 					EnableMetalHud:        currentVer.Settings.EnableMetalHud,
@@ -398,10 +395,6 @@ func showTroubleshootingPopup() {
 		showDebugLogPopup()
 	})
 
-	// --- Delete Vanilla Tweaks ---
-	vanillaTweaksDeleteButton := widget.NewButton("Delete", func() {
-		deleteVanillaTweaksFile()
-	})
 
 	troubleshootingTitle := widget.NewLabel("Troubleshooting")
 	troubleshootingTitle.TextStyle = fyne.TextStyle{Bold: true}
@@ -439,7 +432,6 @@ func showTroubleshootingPopup() {
 	rowCrossover := container.NewBorder(nil, nil, widget.NewLabel("CrossOver version:"), crossoverStatusShort, nil)
 	rowWDB := container.NewBorder(nil, nil, widget.NewLabel("Delete WDB directory (cache):"), wdbDeleteButton, nil)
 	rowWine := container.NewBorder(nil, nil, widget.NewLabel("Delete Wine prefixes (~/.wine & TurtleWoW/.wine):"), wineDeleteButton, nil)
-	rowVanillaTweaks := container.NewBorder(nil, nil, widget.NewLabel("Delete vanilla tweaks (only necessary after a new patch):"), vanillaTweaksDeleteButton, nil)
 	rowDebugLog := container.NewBorder(nil, nil, widget.NewLabel("Show debug log for support:"), debugLogButton, nil)
 	appMgmtNote := widget.NewLabel("Please ensure TurtleSilicon is enabled in System Settings > Privacy & Security > App Management.")
 	appMgmtNote.Wrapping = fyne.TextWrapWord
@@ -449,7 +441,6 @@ func showTroubleshootingPopup() {
 	content.Add(crossoverStatusDetail)
 	content.Add(rowWDB)
 	content.Add(rowWine)
-	content.Add(rowVanillaTweaks)
 	content.Add(rowDebugLog)
 	content.Add(widget.NewSeparator())
 	content.Add(appMgmtNote)
@@ -643,43 +634,6 @@ func deleteWDBDirectoriesInPopup() {
 	}, currentWindow).Show()
 }
 
-// deleteVanillaTweaksFile deletes the WoW_tweaked.exe file for troubleshooting
-func deleteVanillaTweaksFile() {
-	currentVer := GetCurrentVersion()
-	gamePath := ""
-
-	if currentVer != nil && currentVer.GamePath != "" {
-		gamePath = currentVer.GamePath
-	} else {
-		// Fall back to legacy path
-		gamePath = paths.TurtlewowPath
-	}
-
-	if gamePath == "" {
-		dialog.ShowError(fmt.Errorf("No game path set. Cannot locate WoW_tweaked.exe."), currentWindow)
-		return
-	}
-
-	wowTweakedPath := filepath.Join(gamePath, "WoW_tweaked.exe")
-
-	// Check if file exists
-	if _, err := os.Stat(wowTweakedPath); os.IsNotExist(err) {
-		dialog.ShowInformation("Not Found", "WoW_tweaked.exe not found in game directory.", currentWindow)
-		return
-	}
-
-	// Confirm deletion
-	msg := fmt.Sprintf("Are you sure you want to delete WoW_tweaked.exe?\n\nFile location: %s\n\nThis is only necessary after applying a new patch.", wowTweakedPath)
-	dialog.NewConfirm("Delete Vanilla Tweaks", msg, func(confirm bool) {
-		if confirm {
-			if err := os.Remove(wowTweakedPath); err != nil {
-				dialog.ShowError(fmt.Errorf("Failed to delete WoW_tweaked.exe: %v", err), currentWindow)
-			} else {
-				dialog.ShowInformation("Vanilla Tweaks Deleted", "WoW_tweaked.exe has been deleted successfully.", currentWindow)
-			}
-		}
-	}, currentWindow).Show()
-}
 
 // showNewUserTurtleWoWPopup shows a popup for new TurtleWoW users to download the client
 func showNewUserTurtleWoWPopup() {

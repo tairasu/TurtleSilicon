@@ -8,21 +8,19 @@ import (
 )
 
 type GameVersion struct {
-	ID                    string          `json:"id"`
-	DisplayName           string          `json:"display_name"`
-	WoWVersion            string          `json:"wow_version"`
-	GamePath              string          `json:"game_path"`
-	CrossOverPath         string          `json:"crossover_path"`
-	ExecutableName        string          `json:"executable_name"`
-	SupportsVanillaTweaks bool            `json:"supports_vanilla_tweaks"`
-	SupportsDLLLoading    bool            `json:"supports_dll_loading"`
-	UsesRosettaPatching   bool            `json:"uses_rosetta_patching"`
-	UsesDivxDecoderPatch  bool            `json:"uses_divx_decoder_patch"`
-	Settings              VersionSettings `json:"settings"`
+	ID                   string          `json:"id"`
+	DisplayName          string          `json:"display_name"`
+	WoWVersion           string          `json:"wow_version"`
+	GamePath             string          `json:"game_path"`
+	CrossOverPath        string          `json:"crossover_path"`
+	ExecutableName       string          `json:"executable_name"`
+	SupportsDLLLoading   bool            `json:"supports_dll_loading"`
+	UsesRosettaPatching  bool            `json:"uses_rosetta_patching"`
+	UsesDivxDecoderPatch bool            `json:"uses_divx_decoder_patch"`
+	Settings             VersionSettings `json:"settings"`
 }
 
 type VersionSettings struct {
-	EnableVanillaTweaks  bool   `json:"enable_vanilla_tweaks"`
 	RemapOptionAsAlt     bool   `json:"remap_option_as_alt"`
 	AutoDeleteWdb        bool   `json:"auto_delete_wdb"`
 	EnableMetalHud       bool   `json:"enable_metal_hud"`
@@ -48,66 +46,61 @@ type VersionManager struct {
 
 var DefaultVersions = map[string]*GameVersion{
 	"turtlesilicon": {
-		ID:                    "turtlesilicon",
-		DisplayName:           "TurtleSilicon",
-		WoWVersion:            "1.12.1",
-		ExecutableName:        "WoW.exe",
-		SupportsVanillaTweaks: true,
-		SupportsDLLLoading:    true,
-		UsesRosettaPatching:   true,
-		UsesDivxDecoderPatch:  false,
+		ID:                   "turtlesilicon",
+		DisplayName:          "TurtleSilicon",
+		WoWVersion:           "1.12.1",
+		ExecutableName:       "WoW.exe",
+		SupportsDLLLoading:   true,
+		UsesRosettaPatching:  true,
+		UsesDivxDecoderPatch: false,
 		Settings: VersionSettings{
 			AutoDeleteWdb: true, // Enable by default
 		},
 	},
 	"epochsilicon": {
-		ID:                    "epochsilicon",
-		DisplayName:           "EpochSilicon (3.3.5a)",
-		WoWVersion:            "3.3.5a",
-		ExecutableName:        "Project-Epoch.exe",
-		SupportsVanillaTweaks: false,
-		SupportsDLLLoading:    true,
-		UsesRosettaPatching:   false,
-		UsesDivxDecoderPatch:  false,
+		ID:                   "epochsilicon",
+		DisplayName:          "EpochSilicon (3.3.5a)",
+		WoWVersion:           "3.3.5a",
+		ExecutableName:       "Project-Epoch.exe",
+		SupportsDLLLoading:   true,
+		UsesRosettaPatching:  false,
+		UsesDivxDecoderPatch: false,
 		Settings: VersionSettings{
 			AutoDeleteWdb: true, // Enable by default
 		},
 	},
 	"vanillasilicon": {
-		ID:                    "vanillasilicon",
-		DisplayName:           "VanillaSilicon (1.12.1)",
-		WoWVersion:            "1.12.1",
-		ExecutableName:        "WoW.exe",
-		SupportsVanillaTweaks: false,
-		SupportsDLLLoading:    false,
-		UsesRosettaPatching:   false,
-		UsesDivxDecoderPatch:  true,
+		ID:                   "vanillasilicon",
+		DisplayName:          "VanillaSilicon (1.12.1)",
+		WoWVersion:           "1.12.1",
+		ExecutableName:       "WoW.exe",
+		SupportsDLLLoading:   false,
+		UsesRosettaPatching:  false,
+		UsesDivxDecoderPatch: true,
 		Settings: VersionSettings{
 			AutoDeleteWdb: true, // Enable by default
 		},
 	},
 	"burningsilicon": {
-		ID:                    "burningsilicon",
-		DisplayName:           "BurningSilicon (2.4.3)",
-		WoWVersion:            "2.4.3",
-		ExecutableName:        "WoW.exe",
-		SupportsVanillaTweaks: false,
-		SupportsDLLLoading:    false,
-		UsesRosettaPatching:   false,
-		UsesDivxDecoderPatch:  true,
+		ID:                   "burningsilicon",
+		DisplayName:          "BurningSilicon (2.4.3)",
+		WoWVersion:           "2.4.3",
+		ExecutableName:       "WoW.exe",
+		SupportsDLLLoading:   false,
+		UsesRosettaPatching:  false,
+		UsesDivxDecoderPatch: true,
 		Settings: VersionSettings{
 			AutoDeleteWdb: true, // Enable by default
 		},
 	},
 	"wrathsilicon": {
-		ID:                    "wrathsilicon",
-		DisplayName:           "WrathSilicon (3.3.5a)",
-		WoWVersion:            "3.3.5a",
-		ExecutableName:        "WoW.exe",
-		SupportsVanillaTweaks: false,
-		SupportsDLLLoading:    true,
-		UsesRosettaPatching:   false,
-		UsesDivxDecoderPatch:  false,
+		ID:                   "wrathsilicon",
+		DisplayName:          "WrathSilicon (3.3.5a)",
+		WoWVersion:           "3.3.5a",
+		ExecutableName:       "WoW.exe",
+		SupportsDLLLoading:   true,
+		UsesRosettaPatching:  false,
+		UsesDivxDecoderPatch: false,
 		Settings: VersionSettings{
 			AutoDeleteWdb: true, // Enable by default
 		},
