@@ -284,6 +284,13 @@ func patchWithOriginalDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses 
 			debug.Printf("Successfully copied and made executable: %s to %s", resourceName, destPath)
 		}
 
+		// Step 9: Apply movie setting to Config.wtf for versions that use divx decoder patch
+		if err := EnsureMovieSetting(gamePath); err != nil {
+			debug.Printf("Warning: failed to apply movie setting to Config.wtf: %v", err)
+		} else {
+			debug.Printf("Successfully applied movie setting to Config.wtf")
+		}
+
 		// Success - update UI on main thread
 		fyne.DoAndWait(func() {
 			progressPopup.Hide()
@@ -744,6 +751,13 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 
 		debug.Printf("Successfully created patched executable with rundll32: %s", patchedExecutableName)
 
+		// Step 9: Apply movie setting to Config.wtf for versions that use divx decoder patch
+		if err := EnsureMovieSetting(gamePath); err != nil {
+			debug.Printf("Warning: failed to apply movie setting to Config.wtf: %v", err)
+		} else {
+			debug.Printf("Successfully applied movie setting to Config.wtf")
+		}
+
 		// Success - update UI on main thread
 		fyne.DoAndWait(func() {
 			progressPopup.Hide() // Hide progress popup on success
@@ -1067,6 +1081,12 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 
 		if !libRuntimeValid {
 			debug.Printf("Patch verification failed: libRuntimeRosettax87 invalid or missing at %s", libRuntimeRosettax87Path)
+			return false
+		}
+
+		// For versions that use divx decoder patch, also check that movie setting is applied
+		if !CheckMovieSetting(gamePath) {
+			debug.Printf("Patch verification failed: movie setting not applied in Config.wtf for %s", gamePath)
 			return false
 		}
 

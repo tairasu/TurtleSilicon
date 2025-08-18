@@ -658,6 +658,35 @@ func LaunchCurrentVersion(myWindow fyne.Window) {
 		return
 	}
 
+	// Check if this version uses the divx patch method
+	if currentVersion.UsesDivxDecoderPatch {
+		// Validate that SET movie "0" is present in Config.wtf
+		if !patching.CheckMovieSetting(currentVersion.GamePath) {
+			// Show dialog asking if user wants to add the setting
+			dialog.ShowConfirm("Missing required setting", 
+				"This game version requires 'SET movie \"0\"' in Config.wtf to launch properly.\n\nWould you like to add this setting now?", 
+				func(confirmed bool) {
+					if confirmed {
+						// Add the setting and then launch
+						if err := patching.EnsureMovieSetting(currentVersion.GamePath); err != nil {
+							dialog.ShowError(fmt.Errorf("failed to add movie setting: %v", err), myWindow)
+							return
+						}
+						// Launch the game
+						launchGame(myWindow)
+					}
+					// If user declined, don't launch
+				}, myWindow)
+			return
+		}
+	}
+
+	// Launch the game normally
+	launchGame(myWindow)
+}
+
+// launchGame performs the actual game launch
+func launchGame(myWindow fyne.Window) {
 	launcher.LaunchVersionGame(
 		myWindow,
 		currentVersion.ID,

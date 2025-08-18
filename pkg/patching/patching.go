@@ -1033,6 +1033,62 @@ func enableLibSiliconPatchInDlls() error {
 	return nil
 }
 
+// CheckMovieSetting checks if the movie setting is correctly applied in Config.wtf
+func CheckMovieSetting(gamePath string) bool {
+	if gamePath == "" {
+		return false
+	}
+
+	configPath := filepath.Join(gamePath, "WTF", "Config.wtf")
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return false
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		return false
+	}
+
+	configText := string(content)
+	return isConfigSettingCorrect(configText, "movie", "0")
+}
+
+// EnsureMovieSetting ensures the movie setting is applied to Config.wtf for the given game path
+func EnsureMovieSetting(gamePath string) error {
+	if gamePath == "" {
+		return fmt.Errorf("game path not set")
+	}
+
+	configPath := filepath.Join(gamePath, "WTF", "Config.wtf")
+
+	// Create WTF directory if it doesn't exist
+	wtfDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(wtfDir, 0755); err != nil {
+		return fmt.Errorf("failed to create WTF directory: %v", err)
+	}
+
+	var configText string
+
+	// Read existing config if it exists
+	if content, err := os.ReadFile(configPath); err == nil {
+		configText = string(content)
+	} else {
+		debug.Printf("Config.wtf not found, creating new file")
+		configText = ""
+	}
+
+	configText = updateOrAddConfigSetting(configText, "movie", "0")
+
+	// Write the updated config back to file
+	if err := os.WriteFile(configPath, []byte(configText), 0644); err != nil {
+		return fmt.Errorf("failed to write Config.wtf: %v", err)
+	}
+
+	debug.Printf("Successfully ensured movie setting is applied to Config.wtf")
+	return nil
+}
+
 // disableLibSiliconPatchInDlls removes libSiliconPatch.dll from dlls.txt
 func disableLibSiliconPatchInDlls() error {
 	if paths.TurtlewowPath == "" {
