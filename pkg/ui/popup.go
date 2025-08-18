@@ -371,18 +371,28 @@ func showTroubleshootingPopup() {
 	wineDeleteButton = widget.NewButton("Delete", func() {
 		homeDir, _ := os.UserHomeDir()
 		userWine := filepath.Join(homeDir, ".wine")
-		turtleWine := filepath.Join(paths.TurtlewowPath, ".wine")
-		msg := "Are you sure you want to delete the following Wine prefixes?\n\n- " + userWine + "\n- " + turtleWine + "\n\nThis cannot be undone."
+		
+		// Use current version's game path instead of hardcoded TurtleWoW path
+		gamePath := ""
+		if currentVer != nil && currentVer.GamePath != "" {
+			gamePath = currentVer.GamePath
+		} else {
+			// Fall back to legacy path if no current version
+			gamePath = paths.TurtlewowPath
+		}
+		
+		gameWine := filepath.Join(gamePath, ".wine")
+		msg := "Are you sure you want to delete the following Wine prefixes?\n\n- " + userWine + "\n- " + gameWine + "\n\nThis cannot be undone."
 		dialog.NewConfirm("Delete Wine Prefixes", msg, func(confirm bool) {
 			if confirm {
 				err1 := os.RemoveAll(userWine)
-				err2 := os.RemoveAll(turtleWine)
+				err2 := os.RemoveAll(gameWine)
 				if err1 != nil && !os.IsNotExist(err1) {
 					dialog.ShowError(fmt.Errorf("Failed to delete ~/.wine: %v", err1), currentWindow)
 					return
 				}
 				if err2 != nil && !os.IsNotExist(err2) {
-					dialog.ShowError(fmt.Errorf("Failed to delete TurtleWoW/.wine: %v", err2), currentWindow)
+					dialog.ShowError(fmt.Errorf("Failed to delete game/.wine: %v", err2), currentWindow)
 					return
 				}
 				dialog.ShowInformation("Wine Prefixes Deleted", "Wine prefixes deleted successfully.", currentWindow)
@@ -427,11 +437,32 @@ func showTroubleshootingPopup() {
 		content.Add(widget.NewSeparator())
 		content.Add(rowDownload)
 		content.Add(widget.NewSeparator())
+	} else if currentVer.ID == "epochsilicon" {
+		// EpochSilicon-specific section
+		epochTitle := widget.NewLabel("Project Epoch Specific")
+		epochTitle.TextStyle = fyne.TextStyle{Bold: true}
+
+		epochNotice := widget.NewLabel("⚠️ Important: This version only works if the Project Epoch client is updated using the official Ascension launcher. Unfortunately, Ascension does not share any other way to update Project Epoch files.")
+		epochNotice.Wrapping = fyne.TextWrapWord
+		epochNotice.TextStyle = fyne.TextStyle{Italic: true}
+
+		content.Add(epochTitle)
+		content.Add(widget.NewSeparator())
+		content.Add(epochNotice)
+		content.Add(widget.NewSeparator())
 	}
 
 	rowCrossover := container.NewBorder(nil, nil, widget.NewLabel("CrossOver version:"), crossoverStatusShort, nil)
 	rowWDB := container.NewBorder(nil, nil, widget.NewLabel("Delete WDB directory (cache):"), wdbDeleteButton, nil)
-	rowWine := container.NewBorder(nil, nil, widget.NewLabel("Delete Wine prefixes (~/.wine & TurtleWoW/.wine):"), wineDeleteButton, nil)
+	
+	// Create version-aware wine prefix label
+	wineLabel := "Delete Wine prefixes (~/.wine & Game/.wine):"
+	if currentVer != nil && currentVer.GamePath != "" {
+		gameName := filepath.Base(currentVer.GamePath)
+		wineLabel = fmt.Sprintf("Delete Wine prefixes (~/.wine & %s/.wine):", gameName)
+	}
+	rowWine := container.NewBorder(nil, nil, widget.NewLabel(wineLabel), wineDeleteButton, nil)
+	
 	rowDebugLog := container.NewBorder(nil, nil, widget.NewLabel("Show debug log for support:"), debugLogButton, nil)
 	appMgmtNote := widget.NewLabel("Please ensure TurtleSilicon is enabled in System Settings > Privacy & Security > App Management.")
 	appMgmtNote.Wrapping = fyne.TextWrapWord
