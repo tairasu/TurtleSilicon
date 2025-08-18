@@ -61,13 +61,18 @@ func NewModManager(window fyne.Window, vm *version.VersionManager) *ModManager {
 // IsModsSupported checks if the current version supports mods
 func (mm *ModManager) IsModsSupported() bool {
 	if mm.versionManager == nil {
+		debug.Printf("IsModsSupported: versionManager is nil")
 		return false
 	}
 
 	currentVer, err := mm.versionManager.GetCurrentVersion()
 	if err != nil || currentVer == nil {
+		debug.Printf("IsModsSupported: failed to get current version: %v", err)
 		return false
 	}
+
+	debug.Printf("IsModsSupported: Current version ID: %s, DisplayName: %s, SupportsDLLLoading: %v",
+		currentVer.ID, currentVer.DisplayName, currentVer.SupportsDLLLoading)
 
 	// Use the SupportsDLLLoading field from the version configuration
 	return currentVer.SupportsDLLLoading
@@ -354,12 +359,28 @@ func (mm *ModManager) DeleteMod(modIndex int) error {
 func (mm *ModManager) ShowModManager() {
 	debug.Printf("ShowModManager called")
 
+	// Get version info for debugging
+	currentVer, err := mm.versionManager.GetCurrentVersion()
+	if err != nil {
+		debug.Printf("ERROR: Failed to get current version: %v", err)
+		dialog.ShowError(fmt.Errorf("Failed to get current version: %v", err), mm.window)
+		return
+	}
+
+	debug.Printf("Current version details: ID='%s', DisplayName='%s', SupportsDLLLoading=%v",
+		currentVer.ID, currentVer.DisplayName, currentVer.SupportsDLLLoading)
+
 	if !mm.IsModsSupported() {
 		debug.Printf("Mods not supported for current version")
-		dialog.ShowInformation("Mods Not Supported",
-			"Mods are only supported for TurtleWoW, EpochSilicon, and WrathSilicon.\n\n"+
-				"VanillaSilicon and BurningSilicon use the DivX patch method which does not support DLL injection.",
-			mm.window)
+		// Show detailed error message with current version info for debugging
+		errorMsg := fmt.Sprintf("Mods are not supported for the current version.\n\n"+
+			"Current Version: %s (ID: %s)\n"+
+			"SupportsDLLLoading: %v\n\n"+
+			"Mods are only supported for TurtleWoW, EpochSilicon, and WrathSilicon.\n"+
+			"VanillaSilicon and BurningSilicon use the DivX patch method which does not support DLL injection.",
+			currentVer.DisplayName, currentVer.ID, currentVer.SupportsDLLLoading)
+
+		dialog.ShowInformation("Mods Not Supported", errorMsg, mm.window)
 		return
 	}
 
@@ -748,22 +769,28 @@ func (mm *ModManager) showAddModDialog() {
 		"Note: d3d9.dll should remain in the root game directory, not in mods/")
 	instructionText.Wrapping = fyne.TextWrapWord
 
-	whereToGetButton := widget.NewButton("Where do I get mods?", func() {
-		modURL := "https://turtle-wow.fandom.com/wiki/Client_Fixes_and_Tweaks"
-		// Open URL in browser
-		cmd := exec.Command("open", modURL)
-		if err := cmd.Start(); err != nil {
-			dialog.ShowError(fmt.Errorf("Failed to open mods URL: %v", err), mm.window)
-		}
-	})
-	whereToGetButton.Importance = widget.MediumImportance
-
 	okButton := widget.NewButton("OK", func() {
 		// This will be set when the popup is created
 	})
 	okButton.Importance = widget.HighImportance
 
-	buttonsContainer := container.NewHBox(whereToGetButton, okButton)
+	// Only show "Where do I get mods?" button for turtlesilicon
+	var buttonsContainer *fyne.Container
+	currentVer, err := mm.versionManager.GetCurrentVersion()
+	if err == nil && currentVer.ID == "turtlesilicon" {
+		whereToGetButton := widget.NewButton("Where do I get mods?", func() {
+			modURL := "https://turtle-wow.fandom.com/wiki/Client_Fixes_and_Tweaks"
+			// Open URL in browser
+			cmd := exec.Command("open", modURL)
+			if err := cmd.Start(); err != nil {
+				dialog.ShowError(fmt.Errorf("Failed to open mods URL: %v", err), mm.window)
+			}
+		})
+		whereToGetButton.Importance = widget.MediumImportance
+		buttonsContainer = container.NewHBox(whereToGetButton, okButton)
+	} else {
+		buttonsContainer = container.NewHBox(okButton)
+	}
 
 	content := container.NewVBox(
 		container.NewCenter(titleLabel),

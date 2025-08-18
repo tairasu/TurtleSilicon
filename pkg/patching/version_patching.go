@@ -397,8 +397,23 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 		}
 		debug.Printf("Successfully copied libDllLdr.dll")
 
-		// Step 2: Copy winerosetta.dll from bundled resources to game path
-		winerosettaDllPath := filepath.Join(gamePath, "winerosetta.dll")
+		// Step 2: Create mods directory if it doesn't exist and copy winerosetta.dll there
+		modsDir := filepath.Join(gamePath, "mods")
+		if !utils.DirExists(modsDir) {
+			debug.Printf("Creating mods directory: %s", modsDir)
+			if err := os.MkdirAll(modsDir, 0755); err != nil {
+				fyne.DoAndWait(func() {
+					progressPopup.Hide()
+					errMsg := fmt.Sprintf("failed to create mods directory: %v", err)
+					dialog.ShowError(errors.New(errMsg), myWindow)
+					debug.Println(errMsg)
+					updateAllStatuses()
+				})
+				return
+			}
+		}
+
+		winerosettaDllPath := filepath.Join(modsDir, "winerosetta.dll")
 		debug.Printf("Copying winerosetta.dll to: %s", winerosettaDllPath)
 
 		winerosettaResource, err := fyne.LoadResourceFromPath("winerosetta/winerosetta.dll")
@@ -485,8 +500,8 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 		dllsPath := filepath.Join(gamePath, "dlls.txt")
 		debug.Printf("Creating/updating dlls.txt at: %s", dllsPath)
 
-		// Check if dlls.txt already contains winerosetta.dll
-		if !isDllRegisteredInDllsTxt(gamePath, "winerosetta.dll") {
+		// Check if dlls.txt already contains mods/winerosetta.dll
+		if !isDllRegisteredInDllsTxt(gamePath, "mods/winerosetta.dll") {
 			// Read existing content or start with empty
 			var existingContent string
 			if utils.PathExists(dllsPath) {
@@ -500,8 +515,8 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 				existingContent += "\n"
 			}
 
-			// Add winerosetta.dll entry
-			newContent := existingContent + "winerosetta.dll\n"
+			// Add mods/winerosetta.dll entry
+			newContent := existingContent + "mods/winerosetta.dll\n"
 
 			if err := os.WriteFile(dllsPath, []byte(newContent), 0644); err != nil {
 				fyne.DoAndWait(func() {
@@ -513,9 +528,9 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 				})
 				return
 			}
-			debug.Printf("Successfully updated dlls.txt with winerosetta.dll entry")
+			debug.Printf("Successfully updated dlls.txt with mods/winerosetta.dll entry")
 		} else {
-			debug.Printf("winerosetta.dll already registered in dlls.txt")
+			debug.Printf("mods/winerosetta.dll already registered in dlls.txt")
 		}
 
 		// Step 5: Copy rosettax87 service files (required for the patching process)
@@ -835,8 +850,8 @@ func unpatchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), 
 		debug.Printf("Successfully removed libDllLdr.dll")
 	}
 
-	// Remove winerosetta.dll
-	winerosettaDllPath := filepath.Join(gamePath, "winerosetta.dll")
+	// Remove winerosetta.dll from mods directory
+	winerosettaDllPath := filepath.Join(gamePath, "mods", "winerosetta.dll")
 	if utils.PathExists(winerosettaDllPath) {
 		debug.Printf("Removing winerosetta.dll at: %s", winerosettaDllPath)
 		if err := os.Remove(winerosettaDllPath); err != nil {
@@ -906,18 +921,18 @@ func unpatchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), 
 		} else {
 			contentStr := string(content)
 
-			// Remove "winerosetta.dll\n" or "winerosetta.dll" at end
-			newContent := strings.ReplaceAll(contentStr, "winerosetta.dll\n", "")
-			newContent = strings.TrimSuffix(newContent, "winerosetta.dll")
+			// Remove "mods/winerosetta.dll\n" or "mods/winerosetta.dll" at end
+			newContent := strings.ReplaceAll(contentStr, "mods/winerosetta.dll\n", "")
+			newContent = strings.TrimSuffix(newContent, "mods/winerosetta.dll")
 
 			if newContent != contentStr {
 				if err := os.WriteFile(dllsPath, []byte(newContent), 0644); err != nil {
 					debug.Printf("Warning: failed to update dlls.txt: %v", err)
 				} else {
-					debug.Printf("Successfully removed winerosetta.dll entry from dlls.txt")
+					debug.Printf("Successfully removed mods/winerosetta.dll entry from dlls.txt")
 				}
 			} else {
-				debug.Printf("winerosetta.dll entry not found in dlls.txt")
+				debug.Printf("mods/winerosetta.dll entry not found in dlls.txt")
 			}
 		}
 	}
@@ -1011,8 +1026,8 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
 
 		if utils.PathExists(libDllLdrPath) {
-			// libDllLdr approach - check for libDllLdr.dll, winerosetta.dll, d3d9.dll, and patched executables
-			winerosettaDllPath := filepath.Join(gamePath, "winerosetta.dll")
+			// libDllLdr approach - check for libDllLdr.dll, winerosetta.dll in mods/, d3d9.dll, and patched executables
+			winerosettaDllPath := filepath.Join(gamePath, "mods", "winerosetta.dll")
 			d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
 
 			// Check that winerosetta.dll exists
@@ -1036,9 +1051,9 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 				return false
 			}
 
-			// Check dlls.txt to ensure winerosetta.dll is properly registered
-			if !isDllRegisteredInDllsTxt(gamePath, "winerosetta.dll") {
-				debug.Printf("Patch verification failed: winerosetta.dll not found in dlls.txt for %s", gamePath)
+			// Check dlls.txt to ensure mods/winerosetta.dll is properly registered
+			if !isDllRegisteredInDllsTxt(gamePath, "mods/winerosetta.dll") {
+				debug.Printf("Patch verification failed: mods/winerosetta.dll not found in dlls.txt for %s", gamePath)
 				return false
 			}
 

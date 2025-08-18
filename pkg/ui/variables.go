@@ -33,6 +33,9 @@ var (
 	startServiceButton     *widget.Button
 	stopServiceButton      *widget.Button
 
+	// Button containers
+	leftButtons *fyne.Container
+
 	// Option checkboxes
 	metalHudCheckbox      *widget.Check
 	showTerminalCheckbox  *widget.Check

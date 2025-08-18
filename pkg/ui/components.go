@@ -215,22 +215,8 @@ func createBottomBar(myWindow fyne.Window) fyne.CanvasObject {
 		addonManager.ShowAddonManager()
 	})
 
-	// Mods button
-	modsButton := widget.NewButton("Mods", func() {
-		vm := GetCurrentVersionManager()
-		if vm != nil {
-			modManager := mods.NewModManager(myWindow, vm)
-			modManager.ShowModManager()
-		}
-	})
-
-	leftButtons := container.NewHBox(
-		optionsButton,
-		troubleshootingButton,
-		addonsButton,
-		modsButton,
-		githubButton,
-	)
+	// Initialize leftButtons container
+	refreshLeftButtonsContainer(optionsButton, troubleshootingButton, addonsButton, githubButton, myWindow)
 
 	// Create the large play button with fixed size
 	buttonWidth := float32(120)
@@ -708,4 +694,73 @@ func showGraphicsSettingHelpPopup(title, description, impact string) {
 	}
 
 	helpPopup.Show()
+}
+
+// refreshLeftButtonsContainer creates or updates the leftButtons container based on current version
+func refreshLeftButtonsContainer(optionsButton, troubleshootingButton, addonsButton, githubButton *widget.Button, myWindow fyne.Window) {
+	vm := GetCurrentVersionManager()
+	if vm != nil {
+		currentVer, err := vm.GetCurrentVersion()
+		if err == nil && currentVer.SupportsDLLLoading {
+			modsButton := widget.NewButton("Mods", func() {
+				modManager := mods.NewModManager(myWindow, vm)
+				modManager.ShowModManager()
+			})
+			leftButtons = container.NewHBox(
+				optionsButton,
+				troubleshootingButton,
+				addonsButton,
+				modsButton,
+				githubButton,
+			)
+		} else {
+			leftButtons = container.NewHBox(
+				optionsButton,
+				troubleshootingButton,
+				addonsButton,
+				githubButton,
+			)
+		}
+	} else {
+		leftButtons = container.NewHBox(
+			optionsButton,
+			troubleshootingButton,
+			addonsButton,
+			githubButton,
+		)
+	}
+}
+
+// RefreshLeftButtons updates the left buttons container for version changes
+func RefreshLeftButtons() {
+	if leftButtons == nil {
+		return
+	}
+
+	vm := GetCurrentVersionManager()
+	if vm != nil {
+		currentVer, err := vm.GetCurrentVersion()
+		if err == nil && currentVer.SupportsDLLLoading {
+			modsButton := widget.NewButton("Mods", func() {
+				modManager := mods.NewModManager(currentWindow, vm)
+				modManager.ShowModManager()
+			})
+			leftButtons.Objects = []fyne.CanvasObject{
+				leftButtons.Objects[0], // optionsButton
+				leftButtons.Objects[1], // troubleshootingButton
+				leftButtons.Objects[2], // addonsButton
+				modsButton,
+				leftButtons.Objects[len(leftButtons.Objects)-1], // githubButton (last)
+			}
+		} else {
+			// Remove mods button if it exists
+			leftButtons.Objects = []fyne.CanvasObject{
+				leftButtons.Objects[0],                          // optionsButton
+				leftButtons.Objects[1],                          // troubleshootingButton
+				leftButtons.Objects[2],                          // addonsButton
+				leftButtons.Objects[len(leftButtons.Objects)-1], // githubButton (last)
+			}
+		}
+		leftButtons.Refresh()
+	}
 }

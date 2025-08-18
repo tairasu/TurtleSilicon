@@ -410,8 +410,8 @@ func updateVersionCapabilities() {
 		return
 	}
 
-	// No version-specific capabilities to update currently
-
+	// Update left buttons container to show/hide mods button based on version capabilities
+	RefreshLeftButtons()
 }
 
 // GetCurrentVersionManager returns the current version manager
