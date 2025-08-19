@@ -421,7 +421,7 @@ func showTroubleshootingPopup() {
 		turtleTitle.TextStyle = fyne.TextStyle{Bold: true}
 
 		downloadButton := widget.NewButton("Download Fresh Installation", func() {
-			downloadURL := "http://eudl.turtle-wow.org/twmoa_1172.zip"
+			downloadURL := "https://eudl.turtle-wow.org/twmoa_1180.zip"
 			// Open URL in browser
 			cmd := exec.Command("open", downloadURL)
 			if err := cmd.Start(); err != nil {
@@ -683,7 +683,7 @@ func showNewUserTurtleWoWPopup() {
 
 	// Download button
 	downloadButton := widget.NewButton("Download TurtleWoW Client", func() {
-		downloadURL := "http://eudl.turtle-wow.org/twmoa_1172.zip"
+		downloadURL := "https://eudl.turtle-wow.org/twmoa_1180.zip"
 		cmd := exec.Command("open", downloadURL)
 		if err := cmd.Start(); err != nil {
 			dialog.ShowError(fmt.Errorf("Failed to open download URL: %v", err), currentWindow)
