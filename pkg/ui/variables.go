@@ -39,6 +39,7 @@ var (
 	// Option checkboxes
 	metalHudCheckbox      *widget.Check
 	showTerminalCheckbox  *widget.Check
+	vanillaTweaksCheckbox *widget.Check
 	autoDeleteWdbCheckbox *widget.Check
 
 	// Recommended settings button

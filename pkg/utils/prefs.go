@@ -13,6 +13,7 @@ type UserPrefs struct {
 	EnvironmentVariables    string `json:"environment_variables"`
 	SaveSudoPassword        bool   `json:"save_sudo_password"`
 	ShowTerminalNormally    bool   `json:"show_terminal_normally"`
+	EnableVanillaTweaks     bool   `json:"enable_vanilla_tweaks"`
 	RemapOptionAsAlt        bool   `json:"remap_option_as_alt"`
 	AutoDeleteWdb           bool   `json:"auto_delete_wdb"`
 	EnableMetalHud          bool   `json:"enable_metal_hud"`

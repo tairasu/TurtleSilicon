@@ -19,9 +19,10 @@ import (
 	"fyne.io/fyne/v2/dialog"
 )
 
-var EnableMetalHud = false // Default to disabled
-var CustomEnvVars = ""     // Custom environment variables
-var AutoDeleteWdb = true   // Default to enabled
+var EnableMetalHud = false      // Default to disabled
+var CustomEnvVars = ""          // Custom environment variables
+var EnableVanillaTweaks = false // Default to disabled
+var AutoDeleteWdb = true        // Default to enabled
 
 // UI update callback for triggering status updates from launcher
 var uiUpdateCallback func()
@@ -150,8 +151,26 @@ func LaunchGame(myWindow fyne.Window) {
 
 	debug.Println("Preparing to launch TurtleSilicon...")
 
-	// Use the standard WoW.exe executable
-	wowExePath := filepath.Join(paths.TurtlewowPath, "WoW.exe")
+	// Determine which WoW executable to use based on vanilla-tweaks preference
+	var wowExePath string
+	if EnableVanillaTweaks {
+		if !CheckForWoWTweakedExecutable() {
+			// Show dialog asking if user wants us to apply vanilla-tweaks
+			HandleVanillaTweaksRequest(myWindow, func() {
+				// After successful patching, continue with launch using the tweaked executable
+				wowTweakedExePath := GetWoWTweakedExecutablePath()
+				if wowTweakedExePath != "" {
+					continueLaunch(myWindow, wowTweakedExePath)
+				} else {
+					dialog.ShowError(fmt.Errorf("failed to find WoW-tweaked.exe after patching"), myWindow)
+				}
+			})
+			return // Exit early since dialog will handle the continuation
+		}
+		wowExePath = GetWoWTweakedExecutablePath()
+	} else {
+		wowExePath = filepath.Join(paths.TurtlewowPath, "WoW.exe")
+	}
 
 	// Continue with normal launch process
 	continueLaunch(myWindow, wowExePath)
