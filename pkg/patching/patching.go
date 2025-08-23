@@ -211,10 +211,15 @@ func PatchTurtleWoW(myWindow fyne.Window, updateAllStatuses func()) {
 			shouldEnableLibSiliconPatch = !currentVer.Settings.UserDisabledLibSiliconPatch
 			shouldEnableShadowLOD = !currentVer.Settings.UserDisabledShadowLOD
 
-			if currentVer.Settings.UserDisabledLibSiliconPatch {
+			// libSiliconPatch is only available for TurtleSilicon
+			if currentVer.ID != "turtlesilicon" {
+				shouldEnableLibSiliconPatch = false
+				currentVer.Settings.EnableLibSiliconPatch = false
+				debug.Printf("libSiliconPatch disabled for version %s (only available for turtlesilicon)", currentVer.ID)
+			} else if currentVer.Settings.UserDisabledLibSiliconPatch {
 				debug.Printf("libSiliconPatch disabled by user choice")
 			} else {
-				// Enable by default and update settings
+				// Enable by default and update settings for TurtleSilicon
 				currentVer.Settings.EnableLibSiliconPatch = true
 				debug.Printf("libSiliconPatch enabled by default (new user or not explicitly disabled)")
 			}
@@ -964,8 +969,8 @@ func CheckGraphicsSettingsPresence() {
 	// Check if shadowLOD is currently applied
 	shadowLODApplied := CheckShadowLODSetting()
 
-	// Handle libSiliconPatch preference detection
-	if libSiliconPatchExists {
+	// Handle libSiliconPatch preference detection (only for TurtleSilicon)
+	if currentVer.ID == "turtlesilicon" && libSiliconPatchExists {
 		if libSiliconPatchEnabled && !currentVer.Settings.EnableLibSiliconPatch {
 			// DLL is currently enabled but user setting says disabled - likely first run detection
 			currentVer.Settings.EnableLibSiliconPatch = true
@@ -975,6 +980,10 @@ func CheckGraphicsSettingsPresence() {
 			// DLL exists but not enabled, user setting says enabled - respect user choice
 			debug.Printf("libSiliconPatch disabled in dlls.txt but user preference is enabled - keeping user preference")
 		}
+	} else if currentVer.ID != "turtlesilicon" {
+		// Ensure libSiliconPatch is disabled for non-TurtleSilicon versions
+		currentVer.Settings.EnableLibSiliconPatch = false
+		debug.Printf("libSiliconPatch disabled for version %s (only available for turtlesilicon)", currentVer.ID)
 	}
 
 	// Handle shadowLOD preference detection - enable by default if currently applied

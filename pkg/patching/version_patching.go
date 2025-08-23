@@ -22,26 +22,22 @@ import (
 
 // PatchVersionGame patches a game version based on its configuration
 func PatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath string, usesRosettaPatching bool, usesDivxDecoderPatch bool, executableName string, versionID string) {
-	debug.Printf("Patching game at path: %s, rosetta=%v, divx=%v, executable=%s, version=%s", gamePath, usesRosettaPatching, usesDivxDecoderPatch, executableName, versionID)
+	debug.Printf("=== PATCHING DEBUG START ===")
+	debug.Printf("Version ID: %s", versionID)
+	debug.Printf("Game Path: %s", gamePath)
+	debug.Printf("Executable: %s", executableName)
+	debug.Printf("Uses Rosetta Patching: %v", usesRosettaPatching)
+	debug.Printf("Uses DivX Decoder Patch: %v", usesDivxDecoderPatch)
+	debug.Printf("=== PATCHING DEBUG END ===")
 
 	if gamePath == "" {
 		dialog.ShowError(fmt.Errorf("game path not set. Please set it first."), myWindow)
 		return
 	}
 
-	if usesDivxDecoderPatch {
-		// For non-TurtleSilicon versions, determine which approach to use
-		// BurningSilicon and VanillaSilicon use the original DivX decoder approach
-		// Other versions use the new libDllLdr approach
-		if versionID == "burningsilicon" || versionID == "vanillasilicon" {
-			// BurningSilicon and VanillaSilicon need the original DivX decoder approach
-			patchWithOriginalDivxDecoderMethod(myWindow, updateAllStatuses, gamePath)
-		} else {
-			// Other versions (WrathSilicon, EpochSilicon, etc.) use the new libDllLdr approach
-			patchWithLibDllLdrMethod(myWindow, updateAllStatuses, gamePath, executableName)
-		}
-	} else {
-		// For TurtleSilicon, use the full rosettax87 patching
+	if usesRosettaPatching {
+		// TurtleSilicon uses the full rosettax87 patching (includes libSiliconPatch.dll)
+		debug.Printf("Using full rosettax87 patching for %s (includes libSiliconPatch.dll)", versionID)
 		// Temporarily set paths.TurtlewowPath so existing patching works
 		originalPath := paths.TurtlewowPath
 		paths.TurtlewowPath = gamePath
@@ -50,6 +46,20 @@ func PatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath s
 		}()
 
 		PatchTurtleWoW(myWindow, updateAllStatuses)
+	} else if usesDivxDecoderPatch {
+		// BurningSilicon and VanillaSilicon use the original DivX decoder approach
+		if versionID == "burningsilicon" || versionID == "vanillasilicon" {
+			debug.Printf("Using original DivX decoder method for %s", versionID)
+			patchWithOriginalDivxDecoderMethod(myWindow, updateAllStatuses, gamePath)
+		} else {
+			// Other DivX versions use the new libDllLdr approach
+			debug.Printf("Using libDllLdr method for %s (no libSiliconPatch.dll)", versionID)
+			patchWithLibDllLdrMethod(myWindow, updateAllStatuses, gamePath, executableName, true) // Apply movie setting for DivX versions
+		}
+	} else {
+		// Versions with both flags false (EpochSilicon, WrathSilicon) use libDllLdr approach
+		debug.Printf("Using libDllLdr method for %s (no libSiliconPatch.dll)", versionID)
+		patchWithLibDllLdrMethod(myWindow, updateAllStatuses, gamePath, executableName, false) // Don't apply movie setting
 	}
 }
 
@@ -301,7 +311,7 @@ func patchWithOriginalDivxDecoderMethod(myWindow fyne.Window, updateAllStatuses 
 }
 
 // patchWithLibDllLdrMethod implements the new libDllLdr.dll patching method for other versions
-func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), gamePath string, executableName string) {
+func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), gamePath string, executableName string, applyMovieSetting bool) {
 	debug.Println("Applying libDllLdr.dll patching method")
 
 	// Show progress popup and run entire patching process in background
@@ -315,9 +325,9 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 	go func() {
 		// Determine patched executable name based on the provided executable
 		var patchedExecutableName string
-		if executableName == "Project-Epoch.exe" {
-			patchedExecutableName = "Project-Epoch_patched.exe"
-			debug.Printf("Using Project-Epoch.exe for EpochSilicon")
+		if executableName == "Ascension.exe" {
+			patchedExecutableName = "Ascension_patched.exe"
+			debug.Printf("Using Ascension.exe for EpochSilicon")
 		} else {
 			// Default to Wow.exe for all other versions
 			executableName = "Wow.exe"
@@ -718,7 +728,7 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 		}
 		defer os.Chdir(originalDir)
 
-		// Run: wine rundll32 libDllLdr.dll,RunDll32Entry Wow.exe (or Project-Epoch.exe)
+		// Run: wine rundll32 libDllLdr.dll,RunDll32Entry Wow.exe (or Ascension.exe)
 		// Using wineloader (original wine) without any bottles
 		cmd := []string{wineloaderPath, "rundll32", "libDllLdr.dll,RunDll32Entry", executableName}
 		debug.Printf("Running command: %v", cmd)
@@ -766,11 +776,15 @@ func patchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), ga
 
 		debug.Printf("Successfully created patched executable with rundll32: %s", patchedExecutableName)
 
-		// Step 9: Apply movie setting to Config.wtf for versions that use divx decoder patch
-		if err := EnsureMovieSetting(gamePath); err != nil {
-			debug.Printf("Warning: failed to apply movie setting to Config.wtf: %v", err)
+		// Step 9: Apply movie setting to Config.wtf only for versions that use divx decoder patch
+		if applyMovieSetting {
+			if err := EnsureMovieSetting(gamePath); err != nil {
+				debug.Printf("Warning: failed to apply movie setting to Config.wtf: %v", err)
+			} else {
+				debug.Printf("Successfully applied movie setting to Config.wtf")
+			}
 		} else {
-			debug.Printf("Successfully applied movie setting to Config.wtf")
+			debug.Printf("Skipping movie setting for this version (not needed for non-DivX versions)")
 		}
 
 		// Success - update UI on main thread
@@ -803,8 +817,18 @@ func UnpatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath
 		return
 	}
 
-	if usesDivxDecoderPatch {
-		// For non-TurtleSilicon versions, determine which approach to unpatch
+	if usesRosettaPatching {
+		// TurtleSilicon uses the full rosettax87 unpatching
+		// Temporarily set paths.TurtlewowPath so existing unpatching works
+		originalPath := paths.TurtlewowPath
+		paths.TurtlewowPath = gamePath
+		defer func() {
+			paths.TurtlewowPath = originalPath
+		}()
+
+		UnpatchTurtleWoW(myWindow, updateAllStatuses)
+	} else if usesDivxDecoderPatch {
+		// For DivX decoder versions, determine which approach to unpatch
 		// Check which files exist to determine the method used
 		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
 		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
@@ -820,15 +844,14 @@ func UnpatchVersionGame(myWindow fyne.Window, updateAllStatuses func(), gamePath
 			updateAllStatuses()
 		}
 	} else {
-		// For TurtleSilicon, use the full rosettax87 unpatching
-		// Temporarily set paths.TurtlewowPath so existing unpatching works
-		originalPath := paths.TurtlewowPath
-		paths.TurtlewowPath = gamePath
-		defer func() {
-			paths.TurtlewowPath = originalPath
-		}()
-
-		UnpatchTurtleWoW(myWindow, updateAllStatuses)
+		// Versions with both flags false (EpochSilicon, WrathSilicon) use libDllLdr approach
+		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
+		if utils.PathExists(libDllLdrPath) {
+			unpatchWithLibDllLdrMethod(myWindow, updateAllStatuses, gamePath)
+		} else {
+			dialog.ShowInformation("Info", "No patches found to remove.", myWindow)
+			updateAllStatuses()
+		}
 	}
 }
 
@@ -874,27 +897,23 @@ func unpatchWithLibDllLdrMethod(myWindow fyne.Window, updateAllStatuses func(), 
 		}
 	}
 
-	// Remove patched executables
-	wowPatchedPath := filepath.Join(gamePath, "Wow_patched.exe")
-	projectEpochPatchedPath := filepath.Join(gamePath, "Project-Epoch_patched.exe")
-
-	if utils.PathExists(wowPatchedPath) {
-		debug.Printf("Removing Wow_patched.exe at: %s", wowPatchedPath)
-		if err := os.Remove(wowPatchedPath); err != nil {
-			debug.Printf("Warning: failed to remove Wow_patched.exe: %v", err)
-			// Don't fail the operation for this
-		} else {
-			debug.Printf("Successfully removed Wow_patched.exe")
-		}
+	// Remove patched executables - check for multiple possible names
+	patchedExecutables := []string{
+		"Wow_patched.exe",
+		"Project-Epoch_patched.exe", // Legacy name
+		"Ascension_patched.exe",     // New name for EpochSilicon
 	}
 
-	if utils.PathExists(projectEpochPatchedPath) {
-		debug.Printf("Removing Project-Epoch_patched.exe at: %s", projectEpochPatchedPath)
-		if err := os.Remove(projectEpochPatchedPath); err != nil {
-			debug.Printf("Warning: failed to remove Project-Epoch_patched.exe: %v", err)
-			// Don't fail the operation for this
-		} else {
-			debug.Printf("Successfully removed Project-Epoch_patched.exe")
+	for _, execName := range patchedExecutables {
+		patchedPath := filepath.Join(gamePath, execName)
+		if utils.PathExists(patchedPath) {
+			debug.Printf("Removing %s at: %s", execName, patchedPath)
+			if err := os.Remove(patchedPath); err != nil {
+				debug.Printf("Warning: failed to remove %s: %v", execName, err)
+				// Don't fail the operation for this
+			} else {
+				debug.Printf("Successfully removed %s", execName)
+			}
 		}
 	}
 
@@ -1020,7 +1039,13 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 		return false
 	}
 
-	if usesDivxDecoderPatch {
+	// Add EpochSilicon executable migration logic
+	if versionID == "epochsilicon" {
+		migrateEpochSiliconExecutables(gamePath)
+	}
+
+	if usesRosettaPatching {
+		// TurtleSilicon check (same as current "else" case)
 		// For non-TurtleSilicon versions, determine which approach was used
 		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
 		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
@@ -1042,12 +1067,25 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 				return false
 			}
 
-			// Check for patched executable (either Wow_patched.exe or Project-Epoch_patched.exe)
-			wowPatchedPath := filepath.Join(gamePath, "Wow_patched.exe")
-			projectEpochPatchedPath := filepath.Join(gamePath, "Project-Epoch_patched.exe")
+			// Check for patched executable based on version
+			var patchedFound bool
+			if versionID == "epochsilicon" {
+				// For EpochSilicon, look for Ascension_patched.exe
+				ascensionPatchedPath := filepath.Join(gamePath, "Ascension_patched.exe")
+				patchedFound = utils.PathExists(ascensionPatchedPath)
+				if !patchedFound {
+					debug.Printf("Patch verification failed: Ascension_patched.exe not found for EpochSilicon")
+				}
+			} else {
+				// For other versions, look for Wow_patched.exe
+				wowPatchedPath := filepath.Join(gamePath, "Wow_patched.exe")
+				patchedFound = utils.PathExists(wowPatchedPath)
+				if !patchedFound {
+					debug.Printf("Patch verification failed: Wow_patched.exe not found")
+				}
+			}
 
-			if !utils.PathExists(wowPatchedPath) && !utils.PathExists(projectEpochPatchedPath) {
-				debug.Printf("Patch verification failed: no patched executable found (Wow_patched.exe or Project-Epoch_patched.exe)")
+			if !patchedFound {
 				return false
 			}
 
@@ -1100,11 +1138,96 @@ func CheckVersionPatchingStatus(gamePath string, usesRosettaPatching bool, usesD
 		}
 
 		// For versions that use divx decoder patch, also check that movie setting is applied
+		if usesDivxDecoderPatch {
+			if !CheckMovieSetting(gamePath) {
+				debug.Printf("Patch verification failed: movie setting not applied in Config.wtf for %s", gamePath)
+				return false
+			}
+		}
+
+		return true
+	} else if usesDivxDecoderPatch {
+		// Handle versions that use DivX decoder patch (VanillaSilicon, BurningSilicon)
+		// Determine which approach was used based on what files exist
+		libDllLdrPath := filepath.Join(gamePath, "libDllLdr.dll")
+		divxDecoderPath := filepath.Join(gamePath, "DivxDecoder.dll")
+
+		if utils.PathExists(libDllLdrPath) {
+			// Uses libDllLdr approach - check for libDllLdr.dll, winerosetta.dll in mods/, d3d9.dll
+			winerosettaDllPath := filepath.Join(gamePath, "mods", "winerosetta.dll")
+			d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
+
+			if !utils.PathExists(winerosettaDllPath) {
+				debug.Printf("Patch verification failed: winerosetta.dll not found at %s", winerosettaDllPath)
+				return false
+			}
+
+			if !utils.PathExists(d3d9DllPath) {
+				debug.Printf("Patch verification failed: d3d9.dll not found at %s", d3d9DllPath)
+				return false
+			}
+
+			// Check dlls.txt registration
+			if !isDllRegisteredInDllsTxt(gamePath, "mods/winerosetta.dll") {
+				debug.Printf("Patch verification failed: mods/winerosetta.dll not found in dlls.txt for %s", gamePath)
+				return false
+			}
+
+			// Check for Wow_patched.exe
+			wowPatchedPath := filepath.Join(gamePath, "Wow_patched.exe")
+			if !utils.PathExists(wowPatchedPath) {
+				debug.Printf("Patch verification failed: Wow_patched.exe not found")
+				return false
+			}
+
+			debug.Printf("✓ libDllLdr DivX patch verification passed for %s", gamePath)
+		} else if utils.PathExists(divxDecoderPath) {
+			// Uses original DivX decoder approach - check for DivxDecoder.dll and d3d9.dll
+			d3d9DllPath := filepath.Join(gamePath, "d3d9.dll")
+
+			if !utils.PathExists(d3d9DllPath) {
+				debug.Printf("Patch verification failed: d3d9.dll not found at %s", d3d9DllPath)
+				return false
+			}
+
+			debug.Printf("✓ Original DivX decoder patch verification passed for %s", gamePath)
+		} else {
+			// No patches found
+			debug.Printf("Patch verification failed: no DivX decoder patches detected for %s", gamePath)
+			return false
+		}
+
+		// Check for rosettax87 directory and files (common to both approaches)
+		rosettaX87Dir := filepath.Join(gamePath, "rosettax87")
+		if !utils.DirExists(rosettaX87Dir) {
+			debug.Printf("Patch verification failed: rosettax87 directory not found at %s", rosettaX87Dir)
+			return false
+		}
+
+		// Verify rosettax87 binary files with hash/size verification
+		rosettax87Path := filepath.Join(rosettaX87Dir, "rosettax87")
+		libRuntimeRosettax87Path := filepath.Join(rosettaX87Dir, "libRuntimeRosettax87")
+
+		rosettax87Valid := utils.PathExists(rosettax87Path) && utils.CompareFileWithBundledResource(rosettax87Path, "rosettax87/rosettax87")
+		libRuntimeValid := utils.PathExists(libRuntimeRosettax87Path) && utils.CompareFileWithBundledResource(libRuntimeRosettax87Path, "rosettax87/libRuntimeRosettax87")
+
+		if !rosettax87Valid {
+			debug.Printf("Patch verification failed: rosettax87 binary invalid or missing at %s", rosettax87Path)
+			return false
+		}
+
+		if !libRuntimeValid {
+			debug.Printf("Patch verification failed: libRuntimeRosettax87 invalid or missing at %s", libRuntimeRosettax87Path)
+			return false
+		}
+
+		// For versions that use divx decoder patch, also check that movie setting is applied
 		if !CheckMovieSetting(gamePath) {
 			debug.Printf("Patch verification failed: movie setting not applied in Config.wtf for %s", gamePath)
 			return false
 		}
 
+		debug.Printf("✓ DivX decoder patch verification completed for %s", gamePath)
 		return true
 	}
 
@@ -1168,6 +1291,37 @@ func isDllRegisteredInDllsTxt(gamePath string, dllName string) bool {
 	}
 
 	return found
+}
+
+// migrateEpochSiliconExecutables handles migration from old Project-Epoch executable names to new Ascension names
+func migrateEpochSiliconExecutables(gamePath string) {
+	debug.Printf("Checking for EpochSilicon executable migration at: %s", gamePath)
+
+	// Check and migrate Project-Epoch.exe to Ascension.exe
+	oldExePath := filepath.Join(gamePath, "Project-Epoch.exe")
+	newExePath := filepath.Join(gamePath, "Ascension.exe")
+
+	if utils.PathExists(oldExePath) && !utils.PathExists(newExePath) {
+		debug.Printf("Migrating Project-Epoch.exe to Ascension.exe")
+		if err := os.Rename(oldExePath, newExePath); err != nil {
+			debug.Printf("Warning: failed to rename Project-Epoch.exe to Ascension.exe: %v", err)
+		} else {
+			debug.Printf("Successfully migrated Project-Epoch.exe to Ascension.exe")
+		}
+	}
+
+	// Check and migrate Project-Epoch_patched.exe to Ascension_patched.exe
+	oldPatchedExePath := filepath.Join(gamePath, "Project-Epoch_patched.exe")
+	newPatchedExePath := filepath.Join(gamePath, "Ascension_patched.exe")
+
+	if utils.PathExists(oldPatchedExePath) && !utils.PathExists(newPatchedExePath) {
+		debug.Printf("Migrating Project-Epoch_patched.exe to Ascension_patched.exe")
+		if err := os.Rename(oldPatchedExePath, newPatchedExePath); err != nil {
+			debug.Printf("Warning: failed to rename Project-Epoch_patched.exe to Ascension_patched.exe: %v", err)
+		} else {
+			debug.Printf("Successfully migrated Project-Epoch_patched.exe to Ascension_patched.exe")
+		}
+	}
 }
 
 // createPatchingProgressPopup creates a modal popup to show patching progress

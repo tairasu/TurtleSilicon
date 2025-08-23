@@ -68,6 +68,13 @@ func createOptionsComponents() {
 	vanillaTweaksCheckbox.SetChecked(currentVer.Settings.EnableVanillaTweaks)
 	launcher.EnableVanillaTweaks = currentVer.Settings.EnableVanillaTweaks
 
+	// Apply version capability check for vanilla-tweaks
+	if !currentVer.SupportsVanillaTweaks {
+		vanillaTweaksCheckbox.Disable()
+		vanillaTweaksCheckbox.SetChecked(false)
+		launcher.EnableVanillaTweaks = false
+	}
+
 	autoDeleteWdbCheckbox = widget.NewCheck("Auto-delete WDB directory on launch", func(checked bool) {
 		launcher.AutoDeleteWdb = checked
 		// Save to current version settings

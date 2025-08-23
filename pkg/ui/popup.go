@@ -413,6 +413,11 @@ func showTroubleshootingPopup() {
 		showDebugLogPopup()
 	})
 
+	// --- Reset TurtleSilicon ---
+	resetTurtleSiliconButton := widget.NewButton("Reset", func() {
+		resetTurtleSilicon()
+	})
+
 	troubleshootingTitle := widget.NewLabel("Troubleshooting")
 	troubleshootingTitle.TextStyle = fyne.TextStyle{Bold: true}
 
@@ -472,6 +477,7 @@ func showTroubleshootingPopup() {
 	rowVanillaTweaks := container.NewBorder(nil, nil, widget.NewLabel("Delete vanilla tweaks (only necessary after a new patch):"), vanillaTweaksDeleteButton, nil)
 
 	rowDebugLog := container.NewBorder(nil, nil, widget.NewLabel("Show debug log for support:"), debugLogButton, nil)
+	rowResetTurtleSilicon := container.NewBorder(nil, nil, widget.NewLabel("Reset TurtleSilicon (deletes all preferences and settings):"), resetTurtleSiliconButton, nil)
 	appMgmtNote := widget.NewLabel("Please ensure TurtleSilicon is enabled in System Settings > Privacy & Security > App Management.")
 	appMgmtNote.Wrapping = fyne.TextWrapWord
 	appMgmtNote.TextStyle = fyne.TextStyle{Italic: true}
@@ -482,6 +488,7 @@ func showTroubleshootingPopup() {
 	content.Add(rowWine)
 	content.Add(rowVanillaTweaks)
 	content.Add(rowDebugLog)
+	content.Add(rowResetTurtleSilicon)
 	content.Add(widget.NewSeparator())
 	content.Add(appMgmtNote)
 
@@ -798,6 +805,41 @@ func deleteVanillaTweaksFile() {
 				dialog.ShowError(fmt.Errorf("Failed to delete WoW_tweaked.exe: %v", err), currentWindow)
 			} else {
 				dialog.ShowInformation("Vanilla Tweaks Deleted", "WoW_tweaked.exe has been deleted successfully.", currentWindow)
+			}
+		}
+	}, currentWindow).Show()
+}
+
+// resetTurtleSilicon deletes all TurtleSilicon configuration files and asks user to restart
+func resetTurtleSilicon() {
+	if currentWindow == nil {
+		return
+	}
+
+	// Get the Application Support directory path
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("Failed to get user home directory: %v", err), currentWindow)
+		return
+	}
+
+	appSupportDir := filepath.Join(homeDir, "Library", "Application Support", "TurtleSilicon")
+
+	// Check if directory exists
+	if _, err := os.Stat(appSupportDir); os.IsNotExist(err) {
+		dialog.ShowInformation("Nothing to Reset", "No TurtleSilicon configuration found to reset.", currentWindow)
+		return
+	}
+
+	// Confirm reset
+	msg := fmt.Sprintf("Are you sure you want to reset TurtleSilicon?\n\nThis will delete all configuration files including:\n• versions.json (all version settings)\n• prefs.json (legacy preferences)\n• Any other configuration files\n\nDirectory: %s\n\nYou will need to restart TurtleSilicon after this operation.", appSupportDir)
+	dialog.NewConfirm("Reset TurtleSilicon", msg, func(confirm bool) {
+		if confirm {
+			// Delete the entire TurtleSilicon directory
+			if err := os.RemoveAll(appSupportDir); err != nil {
+				dialog.ShowError(fmt.Errorf("Failed to reset TurtleSilicon: %v", err), currentWindow)
+			} else {
+				dialog.ShowInformation("TurtleSilicon Reset", "TurtleSilicon has been reset successfully.\n\nPlease restart TurtleSilicon to continue.", currentWindow)
 			}
 		}
 	}, currentWindow).Show()

@@ -13,7 +13,7 @@ type GameVersion struct {
 	WoWVersion            string          `json:"wow_version"`
 	GamePath              string          `json:"game_path"`
 	CrossOverPath         string          `json:"crossover_path"`
-	ExecutableName        string          `json:"executable_name"`
+	ExecutableName        string          `json:"-"`
 	SupportsVanillaTweaks bool            `json:"supports_vanilla_tweaks"`
 	SupportsDLLLoading    bool            `json:"supports_dll_loading"`
 	UsesRosettaPatching   bool            `json:"uses_rosetta_patching"`
@@ -64,7 +64,7 @@ var DefaultVersions = map[string]*GameVersion{
 		ID:                    "epochsilicon",
 		DisplayName:           "EpochSilicon (3.3.5a)",
 		WoWVersion:            "3.3.5a",
-		ExecutableName:        "Project-Epoch.exe",
+		ExecutableName:        "Ascension.exe",
 		SupportsVanillaTweaks: false,
 		SupportsDLLLoading:    true,
 		UsesRosettaPatching:   false,
@@ -150,11 +150,29 @@ func LoadVersionManager() (*VersionManager, error) {
 		return nil, err
 	}
 
-	// Ensure all default versions exist (for updates)
+	// Ensure all default versions exist and have all default fields (for updates)
 	for id, defaultVersion := range DefaultVersions {
 		if _, exists := vm.Versions[id]; !exists {
 			vm.Versions[id] = &GameVersion{}
 			*vm.Versions[id] = *defaultVersion
+		} else {
+			// Update existing version with any missing fields from defaults
+			existingVersion := vm.Versions[id]
+			if existingVersion.DisplayName == "" {
+				existingVersion.DisplayName = defaultVersion.DisplayName
+			}
+			if existingVersion.WoWVersion == "" {
+				existingVersion.WoWVersion = defaultVersion.WoWVersion
+			}
+			if existingVersion.ExecutableName == "" {
+				existingVersion.ExecutableName = defaultVersion.ExecutableName
+			}
+			// Always update capability flags and executable name to match current defaults
+			existingVersion.SupportsVanillaTweaks = defaultVersion.SupportsVanillaTweaks
+			existingVersion.SupportsDLLLoading = defaultVersion.SupportsDLLLoading
+			existingVersion.UsesRosettaPatching = defaultVersion.UsesRosettaPatching
+			existingVersion.UsesDivxDecoderPatch = defaultVersion.UsesDivxDecoderPatch
+			existingVersion.ExecutableName = defaultVersion.ExecutableName
 		}
 	}
 

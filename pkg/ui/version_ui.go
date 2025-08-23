@@ -650,6 +650,14 @@ func PatchCurrentVersion(myWindow fyne.Window) {
 
 // proceedWithPatching performs the actual patching operation
 func proceedWithPatching(myWindow fyne.Window) {
+	debug.Printf("=== UI PATCHING DEBUG START ===")
+	debug.Printf("Current Version ID: %s", currentVersion.ID)
+	debug.Printf("Current Version Game Path: %s", currentVersion.GamePath)
+	debug.Printf("Current Version Executable: %s", currentVersion.ExecutableName)
+	debug.Printf("Current Version Uses Rosetta: %v", currentVersion.UsesRosettaPatching)
+	debug.Printf("Current Version Uses DivX: %v", currentVersion.UsesDivxDecoderPatch)
+	debug.Printf("=== UI PATCHING DEBUG END ===")
+
 	patching.PatchVersionGame(myWindow, UpdateAllStatuses, currentVersion.GamePath, currentVersion.UsesRosettaPatching, currentVersion.UsesDivxDecoderPatch, currentVersion.ExecutableName, currentVersion.ID)
 
 	// Update patching status
